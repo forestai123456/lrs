@@ -1,0 +1,2096 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover" />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#0b2a54" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="狼人杀助手" />
+  <link rel="apple-touch-icon" sizes="120x120" href="icons/icon-120.png" />
+  <link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152.png" />
+  <link rel="apple-touch-icon" sizes="167x167" href="icons/icon-167.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png" />
+  <title>狼人杀助手</title>
+  <style>
+    :root{
+      --night:#0b2a54;     /* 深蓝 */
+      --day:#bfe3ff;       /* 浅蓝 */
+      --panelText:#ffffff;
+
+      --card:#ffffff1a;
+      --card2:#ffffff26;
+
+      --werewolf:#ff5aa5;  /* 粉 */
+      --seer:#ff9a2f;      /* 橙 */
+      --witch:#b84dff;     /* 亮紫 */
+      --hunter:#009b77;    /* 祖母绿 */
+      --guard:#4aa3ff;     /* 蓝 */
+      --knight:#f4c54a;    /* 亮金 */
+      --dreamer:#7a66ff;   /* 紫 */
+      --villager:#1f3a60;  /* 藏蓝 */
+      --whitewolf:#ff2b2b; /* 红 */
+      --idiot:#ffffff;     /* 白 */
+
+      --deadOverlay: rgba(0,0,0,.45);
+      --shadow: 0 10px 30px rgba(0,0,0,.18);
+      --radius: 18px;
+
+      --tapBlue: rgba(120,220,255,.75);
+      --tapGold: rgba(255,215,120,.85);
+      --tintVoted: rgba(255,255,255,.10);
+      --tintDone: rgba(140,255,170,.12);
+      --tintWarn: rgba(255,120,120,.14);
+    }
+
+    *{box-sizing:border-box;}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Arial, sans-serif;
+      background:#0b0b0f;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* ====== Phone viewport wrapper ====== */
+    .viewport{
+      min-height:100vh;
+      display:flex;
+      justify-content:center;
+      padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+    }
+    .phone{
+      width: min(430px, 100vw);
+      min-height:100vh;
+      display:flex;
+      flex-direction:column;
+      background:#0b0b0f;
+      position:relative;
+      overflow:hidden;
+    }
+    @media (min-width: 900px){
+      .viewport{ padding: 20px 0; }
+      .phone{
+        min-height: 820px;
+        height: 820px;
+        border-radius: 24px;
+        box-shadow: 0 40px 120px rgba(0,0,0,.55);
+        border: 1px solid rgba(255,255,255,.08);
+      }
+    }
+
+    .app{
+      flex:1;
+      display:flex;
+      flex-direction:column;
+    }
+
+    .topbar{
+      padding:14px 14px 10px;
+      color:var(--panelText);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+    }
+
+    .top-left{ display:flex; align-items:center; gap:10px; }
+
+    .icon{
+      width:44px;height:44px;border-radius:14px;
+      display:grid;place-items:center;
+      background:var(--card);
+      box-shadow: var(--shadow);
+      font-size:22px;
+      user-select:none;
+    }
+    .icon .sun{ color:#f6b100; text-shadow: 0 2px 6px rgba(246,177,0,.35); }
+
+    .title{ display:flex; flex-direction:column; line-height:1.1; }
+    .title .h1{ font-weight:900; font-size:18px; letter-spacing:.5px; }
+    .title .sub{ opacity:.9; font-size:12px; margin-top:4px; }
+
+    .top-right{ display:flex; gap:8px; align-items:center; }
+
+    .pill{
+      border:none;
+      background:var(--card);
+      color:#fff;
+      padding:10px 12px;
+      border-radius:14px;
+      box-shadow: var(--shadow);
+      font-weight:900;
+      font-size:13px;
+      cursor:pointer;
+      user-select:none;
+      -webkit-tap-highlight-color: transparent;
+      transition:transform .05s ease;
+      white-space:nowrap;
+    }
+    .pill:active{ transform:scale(.98); }
+
+    .phaseHint{
+      margin:0 14px 10px;
+      background:var(--card);
+      color:#fff;
+      border-radius: var(--radius);
+      padding:10px 12px;
+      font-size:13px;
+      box-shadow: var(--shadow);
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      align-items:flex-start;
+    }
+    .phaseHint b{ font-size:13px; }
+    .phaseHint .small{ opacity:.9; font-size:12px; margin-top:4px; line-height:1.35; }
+    .phaseHint .right{ text-align:right; font-weight:900; font-size:12px; opacity:.95; }
+
+    .boardWrap{
+      flex:1;
+      padding:0 14px 14px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+      overflow:auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .board{
+      background:var(--card);
+      border-radius: var(--radius);
+      padding:12px;
+      box-shadow: var(--shadow);
+    }
+
+    .grid{
+      display:grid;
+      gap:10px;
+      user-select:none;
+    }
+
+    .cell{
+      position:relative;
+      border-radius: 16px;
+      background: var(--card2);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.10);
+      height:72px;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      align-items:center;
+      cursor:pointer;
+      -webkit-tap-highlight-color: transparent;
+      overflow:hidden;
+    }
+    .cell:active{ transform:scale(.99); }
+
+    .num{ font-size:26px; font-weight:950; letter-spacing:.5px; line-height:1; }
+
+    .role{
+      margin-top:6px;
+      font-weight:950;
+      font-size:17px; /* 约为格子高度 1/3 */
+      line-height:1;
+      opacity:.98;
+    }
+
+    .badges{
+      position:absolute;
+      top:8px; left:8px;
+      display:flex;
+      gap:6px;
+      flex-wrap:wrap;
+      max-width:calc(100% - 16px);
+      pointer-events:none;
+      z-index:2;
+    }
+    .badge{
+      font-size:11px;
+      font-weight:950;
+      padding:4px 6px;
+      border-radius:999px;
+      background: rgba(0,0,0,.28);
+      color:#fff;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.14);
+      letter-spacing:.3px;
+    }
+    .badge.sheriff{
+      background: transparent;
+      color:#ffcc33;
+      box-shadow: none;
+      font-size:16px;
+      padding:0;
+    }
+
+    .marksWrap{
+      position:absolute;
+      left:8px;
+      right:8px;
+      bottom:8px;
+      display:flex;
+      justify-content:space-between;
+      gap:8px;
+      pointer-events:none;
+      z-index:2;
+    }
+    .marks{
+      display:flex;
+      flex-wrap:wrap;
+      align-items:center;
+      align-content:flex-start;
+      gap:4px;
+      max-width:calc(50% - 4px);
+    }
+    .marks.right{ justify-content:flex-end; }
+    .mark{
+      font-size:10px;
+      font-weight:950;
+      padding:2px 4px;
+      border-radius:999px;
+      background: rgba(255,255,255,.12);
+      color:#fff;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.14);
+    }
+    @media (max-width: 520px){
+      .marksWrap{ left:6px; right:6px; bottom:6px; }
+      .marks{ gap:3px; max-width:calc(50% - 3px); }
+      .mark{ font-size:9px; padding:2px 3px; }
+    }
+
+    /* 固定角标：显示该玩家“已投给谁” */
+    .cornerVote{
+      position:absolute;
+      right:8px;
+      bottom:8px;
+      font-size:11px;
+      font-weight:950;
+      padding:4px 6px;
+      border-radius:999px;
+      background: rgba(255,255,255,.16);
+      color:#fff;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.14);
+      pointer-events:none;
+      z-index:2;
+    }
+
+    .deadOverlay{
+      position:absolute; inset:0;
+      background: var(--deadOverlay);
+      display:none;
+      align-items:center; justify-content:center;
+      color:#fff;
+      font-weight:950;
+      font-size:18px;
+      letter-spacing:2px;
+      z-index:1;
+    }
+    .cell.dead .deadOverlay{ display:flex; }
+    .cell.dead{ filter:saturate(.85); }
+
+    .actions{
+      background:var(--card);
+      border-radius: var(--radius);
+      padding:12px;
+      box-shadow: var(--shadow);
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      color:#fff;
+    }
+    .actions.isHidden{
+      visibility:hidden;
+      pointer-events:none;
+    }
+
+    .row{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+    @media (max-width: 520px){
+      .actions .row{
+        display:grid;
+        grid-template-columns: repeat(3, minmax(0,1fr));
+      }
+    }
+
+    .btn{
+      border:none;
+      background: rgba(255,255,255,.14);
+      color:#fff;
+      padding:10px 12px;
+      border-radius:14px;
+      font-weight:950;
+      font-size:13px;
+      cursor:pointer;
+      user-select:none;
+      -webkit-tap-highlight-color: transparent;
+      transition:transform .05s ease;
+      white-space:nowrap;
+    }
+    .btn:active{ transform:scale(.98); }
+    .btn.primary{ background: rgba(255,255,255,.22); }
+    .btn.danger{ background: rgba(255,80,80,.24); }
+    .btn.active{
+      outline: 2px solid rgba(255,255,255,.55);
+      outline-offset: 0;
+    }
+    .muted{ opacity:.92; font-size:12px; line-height:1.4; }
+
+    .bottomBar{
+      position:sticky;
+      bottom:0;
+      padding:12px 14px 14px;
+      backdrop-filter: blur(10px);
+      background: linear-gradient(to top, rgba(0,0,0,.35), rgba(0,0,0,0));
+    }
+
+    .bottomInner{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      justify-content:space-between;
+    }
+
+    .bottomLeft{ display:flex; gap:10px; align-items:center; flex:1; }
+    .bottomRight{ display:flex; gap:10px; align-items:center; }
+
+    .bigBtn{
+      flex:1;
+      border:none;
+      border-radius:18px;
+      padding:14px 14px;
+      font-weight:950;
+      font-size:15px;
+      cursor:pointer;
+      user-select:none;
+      -webkit-tap-highlight-color: transparent;
+      box-shadow: var(--shadow);
+      background: rgba(255,255,255,.18);
+      color:#fff;
+      transition:transform .05s ease;
+    }
+    .bigBtn:active{ transform:scale(.99); }
+
+    .miniBtn{
+      border:none;
+      border-radius:18px;
+      padding:14px 14px;
+      font-weight:950;
+      font-size:14px;
+      cursor:pointer;
+      user-select:none;
+      -webkit-tap-highlight-color: transparent;
+      box-shadow: var(--shadow);
+      background: rgba(255,255,255,.14);
+      color:#fff;
+      white-space:nowrap;
+      transition:transform .05s ease;
+    }
+    .miniBtn:active{ transform:scale(.99); }
+
+    .nextRow{
+      margin-top:12px;
+      display:flex;
+      gap:10px;
+      align-items:center;
+    }
+
+    /* ====== Modal ====== */
+    .modalMask{
+      position:fixed; inset:0;
+      background: rgba(0,0,0,.55);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding: max(14px, env(safe-area-inset-bottom));
+      z-index:50;
+    }
+    .modalMask.show{ display:flex; }
+    .modal{
+      width:min(520px, 100%);
+      background: rgba(20,26,38,.98);
+      color:#fff;
+      border-radius: 22px;
+      box-shadow: var(--shadow);
+      overflow:hidden;
+      border: 1px solid rgba(255,255,255,.10);
+      max-height: 86vh;
+      display:flex;
+      flex-direction:column;
+    }
+    .modalHead{
+      padding:14px 14px 10px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      background: rgba(255,255,255,.06);
+    }
+    .modalHead .mh{ font-weight:950; font-size:14px; letter-spacing:.5px; }
+    .modalHead .close{
+      border:none;
+      background: rgba(255,255,255,.12);
+      color:#fff;
+      font-weight:950;
+      border-radius:12px;
+      padding:8px 10px;
+      cursor:pointer;
+    }
+    .modalBody{
+      padding:12px 14px 14px;
+      overflow:auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    /* Role picker */
+    .roleGrid{
+      display:grid;
+      grid-template-columns: repeat(3, minmax(0,1fr));
+      gap:10px;
+    }
+    .roleItem{
+      border:none;
+      border-radius:16px;
+      padding:12px 10px;
+      font-weight:950;
+      cursor:pointer;
+      color:#fff;
+      background: rgba(255,255,255,.10);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.10);
+      -webkit-tap-highlight-color: transparent;
+    }
+    .roleItem:active{ transform:scale(.99); }
+    .roleItem .rname{ font-size:18px; }
+
+    /* Vote modal "calculator" */
+    .voteLayout{
+      display:grid;
+      grid-template-columns: 1fr 120px;
+      gap:12px;
+    }
+    .voteNums{
+      display:grid;
+      gap:10px;
+      align-content:start;
+    }
+    .voteNums.grid3{ grid-template-columns: repeat(3, minmax(0,1fr)); }
+    .voteNums.grid4{ grid-template-columns: repeat(4, minmax(0,1fr)); }
+
+    .voteCell{
+      border-radius: 16px;
+      height:64px;
+      display:grid;
+      place-items:center;
+      font-weight:950;
+      font-size:22px;
+      background: rgba(255,255,255,.10);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.10);
+      cursor:pointer;
+      -webkit-tap-highlight-color: transparent;
+      position:relative;
+      overflow:hidden;
+      transition: transform .05s ease;
+    }
+    .voteCell:active{ transform: scale(.99); }
+    .voteCell.dead{ opacity:.35; pointer-events:none; }
+    .voteCell.selVoter{ outline: 2px solid #ff9a2f; }
+    .voteCell.selTarget{
+      outline: 2px solid #ff4d4d;
+      box-shadow: 0 0 0 2px rgba(255,77,77,.25);
+    }
+
+    /* 已分配投票：更明显 */
+    .voteCell.hasAssigned{ background: rgba(140,255,170,.12); }
+    .voteCell.pending{ background: rgba(255,215,120,.10); }
+
+    .voteCell .tiny{
+      position:absolute; bottom:6px; right:8px;
+      font-size:11px;
+      font-weight:950;
+      opacity:.9;
+      padding:3px 6px;
+      border-radius:999px;
+      background: rgba(255,255,255,.12);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.10);
+    }
+
+    .voteSide{ display:flex; flex-direction:column; gap:10px; margin-top:10px; }
+    .voteBtn{
+      border:none;
+      border-radius:16px;
+      padding:14px 10px;
+      font-weight:950;
+      cursor:pointer;
+      color:#fff;
+      background: rgba(255,255,255,.14);
+      box-shadow: var(--shadow);
+      -webkit-tap-highlight-color: transparent;
+    }
+    .voteBtn:active{ transform:scale(.99); }
+    .voteBtn.primary{ background: rgba(255,255,255,.22); }
+    .voteBtn.danger{ background: rgba(255,80,80,.22); }
+
+    .voteInfo{
+      margin-top:10px;
+      background: rgba(255,255,255,.06);
+      padding:10px;
+      border-radius: 16px;
+      font-size:12px;
+      line-height:1.5;
+      opacity:.95;
+    }
+    @media (max-width: 520px){
+      .voteLayout{ grid-template-columns: 1fr; }
+      .voteSide{ flex-direction:row; }
+      .voteBtn{ flex:1; }
+    }
+
+    /* History modal */
+    .historyList{ display:flex; flex-direction:column; gap:10px; }
+    .historyCard{
+      background: rgba(255,255,255,.06);
+      border-radius: 18px;
+      padding:12px;
+      border: 1px solid rgba(255,255,255,.10);
+    }
+    .historyCard .ht{
+      font-weight:950;
+      font-size:13px;
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      align-items:center;
+    }
+    .historyCard .ts{ font-size:11px; opacity:.75; }
+    .historyCard .lines{
+      margin-top:8px;
+      font-size:13px;
+      line-height:1.55;
+      opacity:.95;
+      white-space:pre-wrap;
+    }
+
+    /* Background by phase */
+    .app.night{ background: linear-gradient(180deg, rgba(11,42,84,1) 0%, rgba(8,18,40,1) 100%); }
+    .app.day{ background: linear-gradient(180deg, rgba(204,234,252,1) 0%, rgba(148,198,248,1) 100%); }
+    .app.day .topbar, .app.day .phaseHint, .app.day .actions, .app.day .board{ color:#0a1830; }
+    .app.day .pill, .app.day .btn, .app.day .bigBtn, .app.day .miniBtn{
+      color:#0a1830; background: rgba(0,0,0,.08);
+    }
+    .app.day .icon{ color:#0a1830; background: rgba(0,0,0,.08); }
+    .app.day .cell{ background: rgba(0,0,0,.07); box-shadow: inset 0 0 0 1px rgba(0,0,0,.08); }
+    .app.day .badge{ background: rgba(0,0,0,.18); color:#fff; }
+    .app.day .mark{ background: rgba(0,0,0,.10); color:#0a1830; box-shadow: inset 0 0 0 1px rgba(0,0,0,.08); }
+    .app.day .cornerVote{
+      background: rgba(0,0,0,.10);
+      color:#0a1830;
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,.08);
+    }
+    .app.day .bottomBar{ background: linear-gradient(to top, rgba(255,255,255,.55), rgba(255,255,255,0)); }
+
+    /* Sheriff vote visual hint: mark voters who already voted */
+    .badge.voted{
+      background: rgba(140,255,170,.20);
+      box-shadow: inset 0 0 0 1px rgba(140,255,170,.28);
+    }
+    .badge.tie{
+      background: rgba(255,120,120,.22);
+      box-shadow: inset 0 0 0 1px rgba(255,120,120,.30);
+    }
+  </style>
+</head>
+
+<body>
+<div class="viewport">
+  <div class="phone">
+    <div id="app" class="app night">
+      <div class="topbar">
+        <div class="top-left">
+          <div id="phaseIcon" class="icon"><span class="moon">🌙</span></div>
+          <div class="title">
+            <div id="phaseTitle" class="h1">第1天黑夜</div>
+            <div id="phaseSub" class="sub"></div>
+          </div>
+        </div>
+        <div class="top-right">
+          <button id="btnTemplate" class="pill">模板：12人</button>
+          <button id="btnPrev" class="pill">上一阶段</button>
+        </div>
+      </div>
+
+      <div id="phaseHint" class="phaseHint">
+        <div>
+          <b id="hintMain">黑夜记录</b>
+          <div id="hintSub" class="small">点号码：标记身份；长按2秒：生死切换</div>
+        </div>
+        <div class="right" id="hintRight">第1轮</div>
+      </div>
+
+      <div class="boardWrap">
+        <div class="board">
+          <div id="grid" class="grid"></div>
+        </div>
+
+        <div class="actions" id="actionsPanel">
+          <div class="row">
+            <button class="btn" id="actWolf">狼刀（刀）</button>
+            <button class="btn" id="actWitch">女巫（救/毒）</button>
+            <button class="btn" id="actSeer">预言家（查）</button>
+            <button class="btn" id="actGuard">守卫（守）</button>
+            <button class="btn" id="actDreamer">摄梦人（摄）</button>
+            <button class="btn danger" id="actClear">清空本夜标记</button>
+          </div>
+          <div class="muted" id="actionsHint">黑夜：先点一个技能按钮，再点目标号码进行标记（每个技能仅一个目标，可重复点目标取消）。</div>
+        </div>
+        <div class="nextRow">
+          <button id="btnNext" class="bigBtn primary">下一阶段</button>
+        </div>
+      </div>
+
+                  <div class="bottomBar">
+        <div class="bottomInner">
+          <div class="bottomLeft">
+            <button id="btnReset" class="miniBtn">重新开始</button>
+            <button id="btnVote" class="bigBtn">投票选项</button>
+          </div>
+          <div class="bottomRight">
+            <button id="btnHistory" class="miniBtn">历史记录</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Role Picker Modal -->
+    <div id="roleMask" class="modalMask">
+      <div class="modal">
+        <div class="modalHead">
+          <div class="mh" id="roleHead">设置身份</div>
+          <button class="close" id="roleClose">关闭</button>
+        </div>
+        <div class="modalBody">
+          <div class="roleGrid" id="roleGrid"></div>
+          <div class="row" style="margin-top:12px;">
+            <button id="btnSetSheriff" class="btn primary">设为警长</button>
+            <button id="btnClearSheriff" class="btn">取消警长</button>
+          </div>
+          <div style="margin-top:10px;opacity:.85;font-size:12px;line-height:1.5;">
+            说明：身份用不同颜色显示；身份字号约为号码格高度的 1/3。
+          </div>
+        </div>
+      </div>
+    </div>
+
+    
+    <!-- Witch Modal -->
+    <div id="witchMask" class="modalMask">
+      <div class="modal">
+        <div class="modalHead">
+          <div class="mh">女巫技能</div>
+          <button class="close" id="witchClose">关闭</button>
+        </div>
+        <div class="modalBody">
+          <div class="row" style="gap:12px;">
+            <button id="witchSave" class="btn primary">救</button>
+            <button id="witchPoison" class="btn danger">毒</button>
+          </div>
+          <div class="muted" style="margin-top:10px;">
+            先点女巫，再点目标号牌后选择技能。
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Vote Modal -->
+    <div id="voteMask" class="modalMask">
+      <div class="modal">
+        <div class="modalHead">
+          <div class="mh" id="voteHead">投票界面</div>
+          <button class="close" id="voteClose">关闭</button>
+        </div>
+        <div class="modalBody">
+          <div class="voteLayout">
+            <div>
+              <div id="voteNums" class="voteNums grid4"></div>
+              <div class="voteSide">
+                <button id="btnAssign" class="voteBtn primary">投给</button>
+                <button id="btnFinishVote" class="voteBtn">完成</button>
+              </div>
+              <div class="voteInfo" id="voteInfo">
+                1) 先点「投票人」（可多选）<br/>
+                2) 点「投给」后，再点「被投票人」（单选）完成一组记录<br/>
+                3) 可继续多组；点「完成」保存到历史记录并退出
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- History Modal -->
+    <div id="histMask" class="modalMask">
+      <div class="modal">
+        <div class="modalHead">
+          <div class="mh">历史记录</div>
+          <button class="close" id="histClose">关闭</button>
+        </div>
+        <div class="modalBody">
+          <div class="historyList" id="historyList"></div>
+          <div style="margin-top:10px;opacity:.85;font-size:12px;line-height:1.5;">
+            记录格式：把<strong>投给同一位玩家</strong>的投票人合并显示，例如：<em>1,2投给3</em>。
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+/** =============================
+ *  数据结构 & 状态机
+ *  ============================= */
+const ROLES = [
+  { key:"werewolf", name:"狼人",  color:getCss("--werewolf"), tag:"粉色" },
+  { key:"whitewolf",name:"白狼王",color:getCss("--whitewolf"), tag:"红色" },
+  { key:"seer",     name:"预言家",color:getCss("--seer"), tag:"橙色" },
+  { key:"witch",    name:"女巫",  color:getCss("--witch"), tag:"深灰" },
+  { key:"guard",    name:"守卫",  color:getCss("--guard"), tag:"蓝色" },
+  { key:"hunter",   name:"猎人",  color:getCss("--hunter"), tag:"绿色" },
+  { key:"knight",   name:"骑士",  color:getCss("--knight"), tag:"金色" },
+  { key:"dreamer",  name:"摄梦人",color:getCss("--dreamer"), tag:"紫色" },
+  { key:"idiot",    name:"白痴",  color:getCss("--idiot"), tag:"白色" },
+  { key:"villager", name:"村民",  color:getCss("--villager"), tag:"浅灰" },
+  { key:"none",     name:"清除",  color:"#ffffff", tag:"无身份" },
+];
+
+function getCss(varName){
+  return getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+}
+
+const TEMPLATES = {
+  9:  { label:"9人",  cols:3, rows:3 },
+  12: { label:"12人", cols:4, rows:3 },
+  16: { label:"16人", cols:4, rows:4 },
+};
+
+const MAX_ROUNDS = 5; // 5轮：黑夜→白天
+let state = null;
+
+function initState(playerCount=12){
+  const players = {};
+  for(let i=1;i<=playerCount;i++){
+    players[i] = {
+      id:i,
+      alive:true,
+      roleKey:"none",
+      // 仅Day1用
+      isCandidate:false,
+      isSheriff:false,
+      // 夜间标记（每晚会重置）
+      marks: { wolf:false, witchSave:false, witchPoison:false, seer:false, guard:false, dreamer:false },
+      voteMarked:false,
+      poisoned:false,
+      canVote:true,
+    };
+  }
+
+  return {
+    playerCount,
+    phaseIndex: 0,      // 0..9
+    day1SubStage: 0,    // Day1: 0上警 1警徽投票 2正常白天
+    nightSkill: null,
+    nightTargets: { wolf:null, witchSave:null, witchPoison:null, seer:null, guard:null, dreamer:null },
+    nightAutoDead: {},
+    day1NightDead: [],
+    lastGuardTarget: null,
+    lastGuardNight: null,
+    lastDreamTarget: null,
+    lastDreamNight: null,
+    day1DeadVoters: {},
+    witchUsed: { save:false, poison:false },
+
+    // Day1 警徽投票：voter -> candidate
+    sheriffVote: { currentCandidate:null, votesByVoter:{}, round:1, tiedCandidates:null },
+
+    // 白天投票：为“固定角标”保留最后一次未清空的投票
+    // day -> { voter -> target }（只显示最后一次“完成”保存的投票）
+    lastDayVoteSaved: {},
+
+    history: [],
+    voteCounterByDay: { 1:0, 2:0, 3:0, 4:0, 5:0 },
+    players
+  };
+}
+
+/** =============================
+ *  DOM
+ *  ============================= */
+const appEl = document.getElementById("app");
+const gridEl = document.getElementById("grid");
+const phaseIconEl = document.getElementById("phaseIcon");
+const phaseTitleEl = document.getElementById("phaseTitle");
+const phaseSubEl = document.getElementById("phaseSub");
+const hintMainEl = document.getElementById("hintMain");
+const hintSubEl = document.getElementById("hintSub");
+const hintRightEl = document.getElementById("hintRight");
+
+const btnTemplate = document.getElementById("btnTemplate");
+const btnNext = document.getElementById("btnNext");
+const btnPrev = document.getElementById("btnPrev");
+const btnReset = document.getElementById("btnReset");
+const btnVote = document.getElementById("btnVote");
+const btnHistory = document.getElementById("btnHistory");
+
+const actionsPanel = document.getElementById("actionsPanel");
+const actWolf = document.getElementById("actWolf");
+const actWitch = document.getElementById("actWitch");
+const actSeer = document.getElementById("actSeer");
+const actGuard = document.getElementById("actGuard");
+const actDreamer = document.getElementById("actDreamer");
+const actClear = document.getElementById("actClear");
+const actionsHint = document.getElementById("actionsHint");
+
+// Role modal
+const roleMask = document.getElementById("roleMask");
+const roleGrid = document.getElementById("roleGrid");
+const roleClose = document.getElementById("roleClose");
+const roleHead = document.getElementById("roleHead");
+const btnSetSheriff = document.getElementById("btnSetSheriff");
+const btnClearSheriff = document.getElementById("btnClearSheriff");
+let roleTargetPlayerId = null;
+
+// Witch modal
+const witchMask = document.getElementById("witchMask");
+const witchClose = document.getElementById("witchClose");
+const witchSave = document.getElementById("witchSave");
+const witchPoison = document.getElementById("witchPoison");
+let witchPendingTargetId = null;
+
+// Vote modal
+const voteMask = document.getElementById("voteMask");
+const voteNums = document.getElementById("voteNums");
+const voteClose = document.getElementById("voteClose");
+const voteHead = document.getElementById("voteHead");
+const btnAssign = document.getElementById("btnAssign");
+const btnFinishVote = document.getElementById("btnFinishVote");
+
+// History modal
+const histMask = document.getElementById("histMask");
+const historyList = document.getElementById("historyList");
+const histClose = document.getElementById("histClose");
+
+/** =============================
+ *  工具函数
+ *  ============================= */
+function isNight(){ return state.phaseIndex % 2 === 0; }
+function dayNumber(){ return Math.floor(state.phaseIndex / 2) + 1; } // 1..5
+const NIGHT_SYMBOLS = ["","①","②","③","④","⑤","⑥","⑦","⑧","⑨"];
+function nightSuffix(){
+  return nightSuffixFor(dayNumber());
+}
+function nightSuffixFor(n){
+  return NIGHT_SYMBOLS[n] || String(n);
+}
+function markLabel(text){
+  return `${text}${nightSuffix()}`;
+}
+function phaseLabel(){
+  const d = dayNumber();
+  return isNight() ? `第${d}天黑夜` : `第${d}天白天`;
+}
+function clampRound(){
+  if(state.phaseIndex < 0) state.phaseIndex = 0;
+  if(state.phaseIndex > (MAX_ROUNDS*2 - 1)) state.phaseIndex = (MAX_ROUNDS*2 - 1);
+}
+function getPlayer(id){ return state.players[id]; }
+function roleMeta(key){ return ROLES.find(r=>r.key===key) || ROLES[0]; }
+function nowTs(){
+  const d = new Date();
+  const pad = (n)=>String(n).padStart(2,"0");
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+// 合并显示：target -> voters[]
+function groupVotes(votesByVoter){
+  const grouped = new Map();
+  for(const [voterStr, target] of Object.entries(votesByVoter)){
+    const voter = Number(voterStr);
+    if(target == null) continue;
+    if(!grouped.has(target)) grouped.set(target, []);
+    grouped.get(target).push(voter);
+  }
+  const out = [];
+  const targets = Array.from(grouped.keys()).sort((a,b)=>a-b);
+  for(const t of targets){
+    const voters = grouped.get(t).sort((a,b)=>a-b);
+    out.push({ target:t, voters });
+  }
+  return out;
+}
+function canSheriffVote(id){
+  const p = getPlayer(id);
+  if(!p) return false;
+  if(!p.canVote) return false;
+  if(!p.alive && !state.day1DeadVoters[id]) return false;
+  if(state.sheriffVote.tiedCandidates && state.sheriffVote.tiedCandidates.includes(id)) return false;
+  return true;
+}
+function setBackground(){
+  appEl.classList.toggle("night", isNight());
+  appEl.classList.toggle("day", !isNight());
+}
+function alivePlayerIds(){
+  return Object.values(state.players).filter(p=>p.alive).map(p=>p.id);
+}
+
+/** =============================
+ *  轻反馈
+ *  ============================= */
+function haptic(){
+  if(navigator.vibrate) navigator.vibrate(10);
+}
+let toastTimer = null;
+function toast(msg){
+  clearTimeout(toastTimer);
+  const old = hintRightEl.textContent;
+  hintRightEl.textContent = msg;
+  toastTimer = setTimeout(()=>hintRightEl.textContent = old, 1300);
+}
+
+/** =============================
+ *  黑夜标记
+ *  ============================= */
+function clearNightMarks(){
+  state.nightSkill = null;
+  state.nightTargets = { wolf:null, witchSave:null, witchPoison:null, seer:null, guard:null, dreamer:null };
+  for(const idStr of Object.keys(state.nightAutoDead)){
+    const id = Number(idStr);
+    const p = getPlayer(id);
+    if(p && !p.poisoned) p.alive = true;
+  }
+  state.nightAutoDead = {};
+  for(const p of Object.values(state.players)){
+    p.marks = { wolf:false, witchSave:false, witchPoison:false, seer:false, guard:false, dreamer:false };
+  }
+}
+function reviveDay1NightDead(){
+  if(!state.day1NightDead || state.day1NightDead.length === 0) return;
+  for(const id of state.day1NightDead){
+    const p = getPlayer(id);
+    if(p) p.alive = true;
+  }
+}
+function restoreDay1NightDead(){
+  if(!state.day1NightDead || state.day1NightDead.length === 0) return;
+  for(const id of state.day1NightDead){
+    const p = getPlayer(id);
+    if(p) p.alive = false;
+  }
+}
+function assignUnmarkedVillagers(){
+  for(const p of Object.values(state.players)){
+    if(p.roleKey === "none") p.roleKey = "villager";
+  }
+}
+function resolveNightDeaths(){
+  const wolfTarget = state.nightTargets.wolf;
+
+  for(const idStr of Object.keys(state.nightAutoDead)){
+    const id = Number(idStr);
+    if(id !== wolfTarget){
+      const p = getPlayer(id);
+      if(p && !p.poisoned) p.alive = true;
+      delete state.nightAutoDead[id];
+    }
+  }
+
+  if(wolfTarget){
+    const p = getPlayer(wolfTarget);
+    if(p && !p.poisoned){
+      const witchOn = state.nightTargets.witchSave === wolfTarget;
+      const guardOn = state.nightTargets.guard === wolfTarget;
+      const shouldDie = (!witchOn && !guardOn) || (witchOn && guardOn);
+      const canAuto = p.alive || state.nightAutoDead[wolfTarget];
+      if(canAuto){
+        if(shouldDie){
+          p.alive = false;
+          state.nightAutoDead[wolfTarget] = true;
+        }else{
+          if(state.nightAutoDead[wolfTarget]) delete state.nightAutoDead[wolfTarget];
+          p.alive = true;
+        }
+      }
+    }
+  }
+
+  const poisonTarget = state.nightTargets.witchPoison;
+  if(poisonTarget){
+    const p = getPlayer(poisonTarget);
+    if(p){
+      p.poisoned = true;
+      p.alive = false;
+    }
+  }
+
+  const dreamTarget = state.nightTargets.dreamer;
+  if(dreamTarget && state.lastDreamTarget === dreamTarget){
+    const p = getPlayer(dreamTarget);
+    if(p) p.alive = false;
+  }
+}
+function toggleNightTarget(skill, targetId){
+  const current = state.nightTargets[skill];
+  if(skill === "guard" && current !== targetId && state.lastGuardTarget === targetId){
+    toast("违规");
+    return;
+  }
+  state.nightTargets[skill] = (current === targetId) ? null : targetId;
+  for(const p of Object.values(state.players)){
+    p.marks[skill] = (p.id === state.nightTargets[skill]);
+  }
+  resolveNightDeaths();
+}
+
+/** =============================
+ *  Day1 警徽投票：优化点1 + 点2（平票规则）
+ *  - 优化1：已投票的玩家在格子上显示 “已投→X”
+ *  - 优化2：平票处理：
+ *      a) 历史记录写明“平票名单”
+ *      b) 最终警长自动选择：平票中号码最小者（规则透明）
+ * ============================= */
+function resetDay1ElectionFlags(){
+  for(const p of Object.values(state.players)){
+    p.isCandidate = false;
+  }
+  state.sheriffVote = { currentCandidate:null, votesByVoter:{}, round:1, tiedCandidates:null };
+  state.day1DeadVoters = {};
+}
+
+function handleSheriffVotingTap(id){
+  const p = getPlayer(id);
+  const candidates = state.sheriffVote.tiedCandidates?.length
+    ? state.sheriffVote.tiedCandidates.slice()
+    : Object.values(state.players).filter(x=>x.isCandidate && x.alive).map(x=>x.id);
+  if(candidates.length === 0){
+    toast("还没有上警玩家");
+    return;
+  }
+
+  // 点上警玩家：切换当前计票对象
+  if(candidates.includes(id)){
+    state.sheriffVote.currentCandidate = id;
+    toast(`计票对象：${id}号`);
+    renderAll();
+    haptic();
+    return;
+  }
+
+  // 点普通玩家：投给当前计票对象
+  const c = state.sheriffVote.currentCandidate;
+  if(!c){
+    toast("先点一个上警玩家作为计票对象");
+    return;
+  }
+  if(!canSheriffVote(id)) return;
+
+  state.sheriffVote.votesByVoter[id] = c;
+  toast(`${id}号 → ${c}号`);
+  renderAll();
+  haptic();
+}
+
+function computeSheriffTally(){
+  const candidates = state.sheriffVote.tiedCandidates?.length
+    ? state.sheriffVote.tiedCandidates.slice()
+    : Object.values(state.players).filter(x=>x.isCandidate && x.alive).map(x=>x.id);
+  const tally = new Map();
+  for(const cid of candidates) tally.set(cid, 0);
+
+  for(const target of Object.values(state.sheriffVote.votesByVoter)){
+    if(tally.has(target)) tally.set(target, tally.get(target) + 1);
+  }
+
+  // 找最高票
+  let max = -1;
+  for(const cnt of tally.values()) max = Math.max(max, cnt);
+
+  const top = Array.from(tally.entries())
+    .filter(([cid,cnt])=>cnt===max)
+    .map(([cid])=>cid)
+    .sort((a,b)=>a-b);
+
+  return { candidates, tally, max, top };
+}
+
+function finalizeSheriffElection(){
+  const candidates = state.sheriffVote.tiedCandidates?.length
+    ? state.sheriffVote.tiedCandidates.map(id=>getPlayer(id)).filter(Boolean)
+    : Object.values(state.players).filter(x=>x.isCandidate && x.alive);
+  if(candidates.length === 0){
+    toast("无人上警，跳过警徽");
+    resetDay1ElectionFlags();
+    state.day1SubStage = 2;
+    restoreDay1NightDead();
+    renderAll();
+    return;
+  }
+
+  const grouped = groupVotes(state.sheriffVote.votesByVoter);
+  const { tally, max, top } = computeSheriffTally();
+
+  if(top.length > 1){
+    if(state.sheriffVote.round === 1){
+      state.sheriffVote.round = 2;
+      state.sheriffVote.tiedCandidates = top;
+      state.sheriffVote.currentCandidate = null;
+      state.sheriffVote.votesByVoter = {};
+      toast(`平票：${top.join(",")}，进入第二轮`);
+      renderAll();
+      return;
+    }
+
+    const lines = [];
+    for(const {target, voters} of grouped){
+      if(voters.length) lines.push(`${voters.join(",")}投给${target}`);
+    }
+    lines.push(`第二轮平票：${top.join(",")}（最高票=${max}）→ 无警长`);
+    state.history.unshift({
+      type:"sheriff",
+      title:"第1天 警徽投票",
+      ts: nowTs(),
+      lines
+    });
+
+    for(const p of Object.values(state.players)) p.isSheriff = false;
+    for(const p of Object.values(state.players)) p.isCandidate = false;
+    state.day1SubStage = 2;
+    resetDay1ElectionFlags();
+    restoreDay1NightDead();
+    toast("两轮平票，无警长");
+    renderAll();
+    return;
+  }
+
+  const sheriffId = top.length ? top[0] : candidates[0].id;
+
+  // 清除旧警长
+  for(const p of Object.values(state.players)) p.isSheriff = false;
+  getPlayer(sheriffId).isSheriff = true;
+
+  // 历史记录
+  const lines = [];
+  for(const {target, voters} of grouped){
+    if(voters.length) lines.push(`${voters.join(",")}投给${target}`);
+  }
+  if(lines.length === 0) lines.push("（无投票记录）");
+
+  lines.push(`最高票：${sheriffId}（${max}票）`);
+
+  state.history.unshift({
+    type:"sheriff",
+    title:`第1天 警徽投票`,
+    ts: nowTs(),
+    lines
+  });
+
+  // 上警标记消失，仅保留警长
+  for(const p of Object.values(state.players)) p.isCandidate = false;
+  state.day1SubStage = 2;
+  state.sheriffVote = { currentCandidate:null, votesByVoter:{}, round:1, tiedCandidates:null };
+  state.day1DeadVoters = {};
+  restoreDay1NightDead();
+
+  toast(`警长：${sheriffId}号`);
+  renderAll();
+}
+
+/** =============================
+ *  Role Picker
+ *  ============================= */
+function buildRolePicker(){
+  roleGrid.innerHTML = "";
+  for(const r of ROLES){
+    const btn = document.createElement("button");
+    btn.className = "roleItem";
+    btn.innerHTML = `<div class="rname" style="color:${r.key==='none' ? '#fff' : r.color}">${r.name}</div>`;
+    btn.addEventListener("click", ()=>{
+      if(roleTargetPlayerId == null) return;
+      setRole(roleTargetPlayerId, r.key);
+      closeRolePicker();
+    });
+    roleGrid.appendChild(btn);
+  }
+}
+function openRolePicker(playerId){
+  roleTargetPlayerId = playerId;
+  roleHead.textContent = `设置身份：${playerId}号`;
+  roleMask.classList.add("show");
+}
+function closeRolePicker(){
+  roleMask.classList.remove("show");
+  roleTargetPlayerId = null;
+}
+function setRole(playerId, roleKey){
+  const p = getPlayer(playerId);
+  p.roleKey = roleKey;
+  renderAll();
+  haptic();
+}
+function setSheriff(playerId){
+  for(const p of Object.values(state.players)) p.isSheriff = false;
+  const target = getPlayer(playerId);
+  if(target) target.isSheriff = true;
+  renderAll();
+  haptic();
+}
+function clearSheriff(){
+  for(const p of Object.values(state.players)) p.isSheriff = false;
+  renderAll();
+  haptic();
+}
+
+/** =============================
+ *  Witch
+ *  ============================= */
+function openWitchPicker(targetId){
+  if(state.witchUsed.save && state.witchUsed.poison){
+    toast("女巫技能已用完");
+    return;
+  }
+  witchPendingTargetId = targetId;
+  witchSave.disabled = !!state.witchUsed.save;
+  witchPoison.disabled = !!state.witchUsed.poison;
+  witchMask.classList.add("show");
+}
+function closeWitchPicker(){
+  witchMask.classList.remove("show");
+  witchPendingTargetId = null;
+}
+function applyWitchSkill(type){
+  const targetId = witchPendingTargetId;
+  if(!targetId) return;
+
+  if(type === "save"){
+    if(state.witchUsed.save && state.nightTargets.witchSave !== targetId){
+      toast("救已使用过");
+      return;
+    }
+    if(!state.nightTargets.wolf){
+      toast("本夜没有狼刀目标");
+      return;
+    }
+    if(targetId !== state.nightTargets.wolf){
+      toast("只能救本夜狼刀目标");
+      return;
+    }
+    state.nightTargets.witchSave = targetId;
+    for(const p of Object.values(state.players)){
+      p.marks.witchSave = (p.id === targetId);
+    }
+    state.witchUsed.save = true;
+    resolveNightDeaths();
+  }
+
+  if(type === "poison"){
+    if(state.witchUsed.poison && state.nightTargets.witchPoison !== targetId){
+      toast("毒已使用过");
+      return;
+    }
+    state.nightTargets.witchPoison = targetId;
+    for(const p of Object.values(state.players)){
+      p.marks.witchPoison = (p.id === targetId);
+    }
+    state.witchUsed.poison = true;
+    resolveNightDeaths();
+  }
+
+  closeWitchPicker();
+  renderAll();
+  haptic();
+}
+
+/** =============================
+ *  投票界面（优化点3 + 固定角标）
+ *  - 优化3：投票人显示“固定角标 →X”
+ *  - 保存后：主界面也会在白天显示每位投票人的角标（直到下一次保存或切换到黑夜自动清）
+ * ============================= */
+let voteSession = null;
+// voteSession: { selectedVoters:Set, pendingAssign:boolean, assigned:{voter:target}, selectedTarget }
+
+function voteGridCols(){
+  return (state.playerCount===9) ? 3 : 4;
+}
+function openVote(){
+  voteSession = {
+    selectedVoters: new Set(),
+    pendingAssign: false,
+    selectedTarget: null,
+    assigned: {} // voter -> target
+  };
+  voteMask.classList.add("show");
+  renderVoteModal();
+}
+function closeVote(){
+  voteMask.classList.remove("show");
+  voteSession = null;
+}
+
+function renderVoteModal(){
+  if(!voteSession) return;
+
+  const cols = voteGridCols();
+  voteNums.classList.toggle("grid3", cols===3);
+  voteNums.classList.toggle("grid4", cols===4);
+
+  voteHead.textContent = `投票界面（第${dayNumber()}天）`;
+  voteNums.innerHTML = "";
+
+  for(let id=1; id<=state.playerCount; id++){
+    const p = getPlayer(id);
+    if(!p.canVote) continue;
+    const c = document.createElement("div");
+    c.className = "voteCell" + (p.alive ? "" : " dead");
+    c.textContent = id;
+
+    const assignedTarget = voteSession.assigned[id];
+    if(assignedTarget != null){
+      c.classList.add("hasAssigned");
+      const tiny = document.createElement("div");
+      tiny.className = "tiny";
+      tiny.textContent = `→${assignedTarget}`;
+      c.appendChild(tiny);
+    }
+
+    if(voteSession.pendingAssign) c.classList.add("pending");
+    if(voteSession.selectedVoters.has(id)) c.classList.add("selVoter");
+    if(voteSession.pendingAssign && voteSession.selectedTarget === id) c.classList.add("selTarget");
+    if(Object.values(voteSession.assigned).some(t=>t===id)) c.classList.add("selTarget");
+    if(c.classList.contains("selVoter")) c.classList.remove("selTarget");
+
+    c.addEventListener("click", ()=>{
+      if(!p.alive) return;
+
+      if(voteSession.pendingAssign){
+        // 选被投票人（单选）
+        voteSession.selectedTarget = id;
+
+        const voters = Array.from(voteSession.selectedVoters);
+        if(voters.length === 0){
+          toast("先选择投票人（可多选）");
+          return;
+        }
+        for(const v of voters){
+          voteSession.assigned[v] = id;
+        }
+        voteSession.selectedVoters.clear();
+        voteSession.pendingAssign = false;
+        voteSession.selectedTarget = null;
+
+        toast(`已记录 ${voters.join(",")} → ${id}`);
+        renderVoteModal();
+        haptic();
+      }else{
+        // 选择投票人（可多选）
+        if(voteSession.selectedVoters.has(id)) voteSession.selectedVoters.delete(id);
+        else voteSession.selectedVoters.add(id);
+        renderVoteModal();
+        haptic();
+      }
+    });
+
+    voteNums.appendChild(c);
+  }
+}
+
+function saveVoteSessionToHistory(){
+  if(!voteSession) return;
+
+  const day = dayNumber();
+  state.voteCounterByDay[day] = (state.voteCounterByDay[day] || 0) + 1;
+  const idx = state.voteCounterByDay[day];
+
+  const grouped = groupVotes(voteSession.assigned);
+  const lines = [];
+  for(const {target, voters} of grouped){
+    if(voters.length) lines.push(`${voters.join(",")}投给${target}`);
+  }
+  if(lines.length === 0){
+    toast("没有投票记录可保存");
+    return;
+  }
+
+  // 写历史
+  state.history.unshift({
+    type:"vote",
+    title:`第${day}天 第${idx}轮投票`,
+    ts: nowTs(),
+    lines
+  });
+
+  // 保存“固定角标”到主界面（只保留最后一次已完成的投票）
+  state.lastDayVoteSaved[day] = {...voteSession.assigned};
+
+  applyDayVoteOutcome(voteSession.assigned);
+  renderAll();
+
+  toast("已保存到历史记录");
+  haptic();
+}
+
+function applyDayVoteOutcome(votesByVoter){
+  const tally = new Map();
+  for(const target of Object.values(votesByVoter)){
+    if(target == null) continue;
+    tally.set(target, (tally.get(target) || 0) + 1);
+  }
+  if(tally.size === 0) return;
+
+  let max = -1;
+  for(const cnt of tally.values()) max = Math.max(max, cnt);
+  const top = Array.from(tally.entries())
+    .filter(([,cnt])=>cnt===max)
+    .map(([target])=>Number(target));
+
+  if(top.length > 1) return;
+
+  for(const id of top){
+    const p = getPlayer(id);
+    if(!p) continue;
+    if(p.roleKey === "idiot" && p.canVote){
+      p.canVote = false;
+      toast("白痴免死，失去投票权");
+      continue;
+    }
+    p.voteMarked = true;
+    p.alive = false;
+  }
+}
+
+/** =============================
+ *  历史记录
+ *  ============================= */
+function recordPhaseHistory(){
+  const d = dayNumber();
+  if(isNight()){
+    const lines = buildNightHistoryLines();
+    state.history.unshift({
+      type:"night",
+      title:`第${d}天 黑夜记录`,
+      ts: nowTs(),
+      lines: lines.length ? lines : ["（无记录）"]
+    });
+    return;
+  }
+
+  const lines = buildDayHistoryLines();
+  state.history.unshift({
+    type:"day",
+    title:`第${d}天 白天记录`,
+    ts: nowTs(),
+    lines: lines.length ? lines : ["（无记录）"]
+  });
+}
+function buildNightHistoryLines(){
+  const lines = [];
+  if(state.nightTargets.wolf) lines.push(`狼刀：${state.nightTargets.wolf}号`);
+  if(state.nightTargets.witchSave) lines.push(`女巫救：${state.nightTargets.witchSave}号`);
+  if(state.nightTargets.witchPoison) lines.push(`女巫毒：${state.nightTargets.witchPoison}号`);
+  if(state.nightTargets.seer) lines.push(`预言家查：${state.nightTargets.seer}号`);
+  if(state.nightTargets.guard) lines.push(`守卫守：${state.nightTargets.guard}号`);
+  if(state.nightTargets.dreamer) lines.push(`摄梦人摄：${state.nightTargets.dreamer}号`);
+  if(state.nightTargets.dreamer && state.lastDreamTarget === state.nightTargets.dreamer){
+    lines.push(`摄死：${state.nightTargets.dreamer}号`);
+  }
+
+  const nightDead = new Set();
+  for(const idStr of Object.keys(state.nightAutoDead)) nightDead.add(Number(idStr));
+  if(state.nightTargets.witchPoison) nightDead.add(state.nightTargets.witchPoison);
+  if(state.nightTargets.dreamer && state.lastDreamTarget === state.nightTargets.dreamer){
+    nightDead.add(state.nightTargets.dreamer);
+  }
+  if(nightDead.size){
+    const ids = Array.from(nightDead).sort((a,b)=>a-b);
+    lines.push(`本夜死亡：${ids.join(",")}号`);
+  }else{
+    lines.push("本夜无人死亡");
+  }
+  return lines;
+}
+function buildDayHistoryLines(){
+  const dead = Object.values(state.players).filter(p=>!p.alive).map(p=>p.id).sort((a,b)=>a-b);
+  if(dead.length) return [`当前死亡：${dead.join(",")}号`];
+  return ["当前无人死亡"];
+}
+function openHistory(){
+  histMask.classList.add("show");
+  renderHistory();
+}
+function closeHistory(){
+  histMask.classList.remove("show");
+}
+function renderHistory(){
+  historyList.innerHTML = "";
+  if(state.history.length === 0){
+    const empty = document.createElement("div");
+    empty.className = "historyCard";
+    empty.innerHTML = `<div class="ht">暂无记录</div>
+                       <div class="lines">投票/警徽投票完成后会自动保存到这里。</div>`;
+    historyList.appendChild(empty);
+    return;
+  }
+  for(const item of state.history){
+    const card = document.createElement("div");
+    card.className = "historyCard";
+    card.innerHTML = `
+      <div class="ht">
+        <div>${item.title}</div>
+        <div class="ts">${item.ts}</div>
+      </div>
+      <div class="lines">${escapeHtml(item.lines.join("\n"))}</div>
+    `;
+    historyList.appendChild(card);
+  }
+}
+function escapeHtml(str){
+  return String(str)
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;");
+}
+
+/** =============================
+ *  渲染：顶部/提示/操作面板（含警徽投票实时统计）
+ *  ============================= */
+function renderTop(){
+  setBackground();
+  phaseTitleEl.textContent = phaseLabel();
+
+  const d = dayNumber();
+  phaseIconEl.innerHTML = isNight()
+    ? "<span class=\"moon\">🌙</span>"
+    : "<span class=\"sun\">☀</span>";
+  phaseSubEl.textContent = "";
+
+  // 右侧默认：第几轮
+  hintRightEl.textContent = `第${d}轮`;
+
+  if(isNight()){
+    hintMainEl.textContent = "黑夜记录";
+    hintSubEl.textContent = "点号码：标记身份；长按2秒：生死切换（黑夜可用技能按钮标记目标）";
+    actionsPanel.classList.remove("isHidden");
+  }else{
+    const isDay1 = (dayNumber() === 1);
+
+    if(isDay1 && state.day1SubStage===0){
+      hintMainEl.textContent = "第1天上警报名";
+      hintSubEl.textContent = "点号码：标记/取消上警；长按2秒：生死切换";
+    }else if(isDay1 && state.day1SubStage===1){
+      const roundText = state.sheriffVote.round === 2 ? "（第2轮）" : "";
+      hintMainEl.textContent = `警徽投票${roundText}（实时计票）`;
+
+      const { candidates, tally, max, top } = computeSheriffTally();
+      candidates.sort((a,b)=>a-b);
+
+      const lines = [];
+      if(candidates.length){
+        for(const cid of candidates){
+          const cnt = tally.get(cid) ?? 0;
+          lines.push(`${cid}号：${cnt}票`);
+        }
+      }
+      let tieText = "";
+      if(top.length > 1){
+        tieText = state.sheriffVote.round === 2
+          ? `平票：${top.join(",")}（最高=${max}）→ 规则：两轮平票无警长`
+          : `平票：${top.join(",")}（最高=${max}）→ 规则：进入第二轮`;
+      }
+      const current = state.sheriffVote.currentCandidate ? `计票对象：${state.sheriffVote.currentCandidate}号` : `先点上警玩家选计票对象`;
+      hintSubEl.textContent = `${current}\n${lines.join("  |  ")}${tieText ? "\n" + tieText : ""}`;
+    }else{
+      hintMainEl.textContent = "白天记录";
+      hintSubEl.textContent = "点号码：标记身份；长按2秒：生死切换；投票请点底部“投票选项”（保存后主界面显示→X角标）";
+    }
+
+    actionsPanel.classList.add("isHidden");
+  }
+
+  btnTemplate.textContent = `模板：${state.playerCount}人`;
+}
+
+function renderActionsActive(){
+  const s = state.nightSkill;
+  actWolf.classList.toggle("active", s==="wolf");
+  actWitch.classList.toggle("active", s==="witch");
+  actSeer.classList.toggle("active", s==="seer");
+  actGuard.classList.toggle("active", s==="guard");
+  actDreamer.classList.toggle("active", s==="dreamer");
+}
+
+/** =============================
+ *  渲染：玩家格子（新增：警徽投票“已投→X” + 白天投票“→X”固定角标）
+ *  ============================= */
+function gridConfig(){
+  const t = TEMPLATES[state.playerCount];
+  return { cols:t.cols, rows:t.rows };
+}
+function renderGrid(){
+  const { cols } = gridConfig();
+  gridEl.style.gridTemplateColumns = `repeat(${cols}, minmax(0,1fr))`;
+  gridEl.innerHTML = "";
+
+  const day = dayNumber();
+  const lastSaved = state.lastDayVoteSaved[day] || {};
+
+  // sheriff vote: who voted and to whom
+  const isSheriffVoting = (!isNight() && day===1 && state.day1SubStage===1);
+  const sheriffVotes = state.sheriffVote.votesByVoter || {};
+  const { top } = isSheriffVoting ? computeSheriffTally() : { top:[] };
+
+  for(let id=1; id<=state.playerCount; id++){
+    const p = getPlayer(id);
+    const cell = document.createElement("div");
+    cell.className = "cell" + (p.alive ? "" : " dead");
+    cell.dataset.id = id;
+
+    const num = document.createElement("div");
+    num.className = "num";
+    num.style.color = isNight() ? "#fff" : "#0a1830";
+    num.textContent = id;
+
+    const role = document.createElement("div");
+    role.className = "role";
+    const meta = roleMeta(p.roleKey);
+    role.textContent = (p.roleKey==="none") ? "" : meta.name;
+    role.style.color = meta.color;
+
+    const badges = document.createElement("div");
+    badges.className = "badges";
+
+    // Day1 上警报名/警徽投票：显示上警标记
+    if(!isNight() && day===1 && state.day1SubStage<=1 && p.isCandidate){
+      badges.appendChild(makeBadge("上警"));
+    }
+
+    // 警长
+    if(p.isSheriff){
+      const star = makeBadge("🌟");
+      star.classList.add("sheriff");
+      badges.appendChild(star);
+    }
+
+    // Sheriff voting: show "已投→X" on voters
+    if(isSheriffVoting && canSheriffVote(p.id)){
+      const to = sheriffVotes[id];
+      if(to != null){
+        const b = makeBadge(`已投→${to}`);
+        b.classList.add("voted");
+        badges.appendChild(b);
+      }
+      // 平票候选标记（提示更明显）
+      if(p.isCandidate && top.length > 1 && top.includes(p.id)){
+        const b2 = makeBadge("平票候选");
+        b2.classList.add("tie");
+        badges.appendChild(b2);
+      }
+    }
+
+    const marksList = [];
+    if(p.voteMarked) marksList.push(makeMark("投"));
+    const hasNightPoison = isNight() && p.marks.witchPoison;
+    if(p.poisoned && !hasNightPoison) marksList.push(makeMark("毒"));
+    if(isNight()){
+      if(state.lastGuardTarget && state.nightTargets.guard == null && p.id === state.lastGuardTarget){
+        const label = `守${nightSuffixFor(state.lastGuardNight || dayNumber())}`;
+        marksList.push(makeMark(label));
+      }
+      if(state.lastDreamTarget && state.nightTargets.dreamer == null && p.id === state.lastDreamTarget){
+        const label = `摄${nightSuffixFor(state.lastDreamNight || dayNumber())}`;
+        marksList.push(makeMark(label));
+      }
+      if(p.marks.wolf)        marksList.push(makeMark("刀"));
+      if(p.marks.witchSave)   marksList.push(makeMark("救"));
+      if(p.marks.witchPoison) marksList.push(makeMark("毒"));
+      if(p.marks.seer)        marksList.push(makeMark(markLabel("查")));
+      if(p.marks.guard)       marksList.push(makeMark(markLabel("守")));
+      if(p.marks.dreamer)     marksList.push(makeMark(markLabel("摄")));
+    }
+    if(marksList.length){
+      const wrap = document.createElement("div");
+      wrap.className = "marksWrap";
+      const left = document.createElement("div");
+      left.className = "marks";
+      wrap.appendChild(left);
+      if(marksList.length > 2){
+        const right = document.createElement("div");
+        right.className = "marks right";
+        const splitAt = 2;
+        marksList.slice(0, splitAt).forEach(m=>left.appendChild(m));
+        marksList.slice(splitAt).forEach(m=>right.appendChild(m));
+        wrap.appendChild(right);
+      }else{
+        marksList.forEach(m=>left.appendChild(m));
+      }
+      cell.appendChild(wrap);
+    }
+
+    // 白天投票固定角标：显示最后一次“完成”保存的投票
+    if(!isNight() && p.alive){
+      const t = lastSaved[id];
+      if(t != null){
+        const cv = document.createElement("div");
+        cv.className = "cornerVote";
+        cv.textContent = `→${t}`;
+        cell.appendChild(cv);
+      }
+    }
+
+    const deadOverlay = document.createElement("div");
+    deadOverlay.className = "deadOverlay";
+    deadOverlay.textContent = "☠️";
+
+    cell.appendChild(badges);
+    cell.appendChild(num);
+    cell.appendChild(role);
+    cell.appendChild(deadOverlay);
+
+    attachCellHandlers(cell, id);
+    gridEl.appendChild(cell);
+  }
+}
+function makeBadge(text){
+  const b = document.createElement("div");
+  b.className = "badge";
+  b.textContent = text;
+  return b;
+}
+function makeMark(text){
+  const m = document.createElement("div");
+  m.className = "mark";
+  m.textContent = text;
+  return m;
+}
+
+/** =============================
+ *  交互：格子点击/长按
+ *  ============================= */
+function attachCellHandlers(cell, id){
+  let pressTimer = null;
+  let pressed = false;
+  let suppressTap = false;
+  let tapHandled = false;
+
+  const startPress = (e)=>{
+    if(e && e.cancelable) e.preventDefault();
+    pressed = false;
+    pressTimer = setTimeout(()=>{
+      pressed = true;
+      suppressTap = true;
+      toggleAlive(id);
+    }, 1500);
+  };
+  const endPress = (e)=>{
+    if(e && e.cancelable) e.preventDefault();
+    if(pressTimer) clearTimeout(pressTimer);
+    pressTimer = null;
+    if(pressed) return;
+    if(suppressTap){
+      suppressTap = false;
+      return;
+    }
+    if(!pressed){
+      tapHandled = true;
+      onCellTap(id);
+    }
+  };
+
+  cell.addEventListener("mousedown", startPress);
+  cell.addEventListener("touchstart", startPress, {passive:false});
+  cell.addEventListener("mouseup", endPress);
+  cell.addEventListener("mouseleave", ()=>{ if(pressTimer) clearTimeout(pressTimer); pressTimer=null; });
+  cell.addEventListener("touchend", endPress, {passive:false});
+  cell.addEventListener("touchcancel", ()=>{ if(pressTimer) clearTimeout(pressTimer); pressTimer=null; pressed=false; });
+  cell.addEventListener("click", ()=>{
+    if(tapHandled){
+      tapHandled = false;
+      return;
+    }
+    if(Date.now() - lastLongPressAt < 400) return;
+    onCellTap(id);
+  });
+}
+
+let lastLongPressAt = 0;
+function toggleAlive(id){
+  lastLongPressAt = Date.now();
+  const p = getPlayer(id);
+  p.alive = !p.alive;
+  if(state.nightAutoDead[id]) delete state.nightAutoDead[id];
+  if(!isNight() && dayNumber()===1 && state.day1SubStage===0){
+    if(!p.alive) state.day1DeadVoters[id] = true;
+    else delete state.day1DeadVoters[id];
+  }
+  renderAll();
+  haptic();
+}
+
+function onCellTap(id){
+  if(Date.now() - lastLongPressAt < 400) return;
+  const p = getPlayer(id);
+
+  // Day1 上警报名
+  if(!isNight() && dayNumber()===1 && state.day1SubStage===0){
+    if(!p.alive) return;
+    p.isCandidate = !p.isCandidate;
+    renderAll(); haptic();
+    return;
+  }
+
+  // Day1 警徽投票
+  if(!isNight() && dayNumber()===1 && state.day1SubStage===1){
+    handleSheriffVotingTap(id);
+    return;
+  }
+
+  // 黑夜：技能点选
+    if(isNight() && state.nightSkill){
+      if(state.nightSkill === "witch"){
+        openWitchPicker(id);
+        return;
+      }
+    const canGuardDead = state.nightSkill === "guard"
+      && (state.nightTargets.wolf === id
+        || state.nightTargets.witchPoison === id
+        || state.nightAutoDead[id]);
+    const canSeerDead = state.nightSkill === "seer";
+    const canDreamDead = state.nightSkill === "dreamer";
+    if(!p.alive && !canGuardDead && !canSeerDead && !canDreamDead) return;
+    toggleNightTarget(state.nightSkill, id);
+    renderAll(); haptic();
+    return;
+  }
+
+ openRolePicker(id);
+}
+
+/** =============================
+ *  上一阶段
+ * ============================= */
+function prevStage(){
+  if(!isNight() && dayNumber()===1){
+    if(state.day1SubStage === 1){
+      state.day1SubStage = 0;
+      state.sheriffVote = { currentCandidate:null, votesByVoter:{}, round:1, tiedCandidates:null };
+      toast("返回：上警报名");
+      renderAll();
+      haptic();
+      return;
+    }
+    if(state.day1SubStage === 2){
+      state.day1SubStage = 1;
+      state.sheriffVote = { currentCandidate:null, votesByVoter:{}, round:1, tiedCandidates:null };
+      reviveDay1NightDead();
+      toast("返回：警徽投票");
+      renderAll();
+      haptic();
+      return;
+    }
+  }
+
+  if(state.phaseIndex <= 0){
+    toast("已是最早阶段");
+    return;
+  }
+
+  state.phaseIndex -= 1;
+  renderAll();
+  haptic();
+}
+
+/** =============================
+ *  下一阶段：黑夜/白天 + Day1 子阶段
+ *  - 进入黑夜：自动清空“白天投票固定角标”（避免跨夜污染复盘）
+ * ============================= */
+function nextStage(){
+  // Day1 子阶段推进
+  if(!isNight() && dayNumber()===1){
+    if(state.day1SubStage === 0){
+      state.day1SubStage = 1;
+      state.sheriffVote = { currentCandidate:null, votesByVoter:{}, round:1, tiedCandidates:null };
+      toast("进入：警徽投票");
+      renderAll();
+      return;
+    }
+    if(state.day1SubStage === 1){
+      finalizeSheriffElection();
+      return;
+    }
+    // subStage 2：正常白天 -> 夜2
+  }
+
+  if(state.phaseIndex >= (MAX_ROUNDS*2 - 1)){
+    toast("已到第5天白天（结束）");
+    return;
+  }
+
+  recordPhaseHistory();
+
+  const wasNight = isNight();
+  state.phaseIndex += 1;
+  if(dayNumber() > 1 && Object.keys(state.day1DeadVoters).length){
+    state.day1DeadVoters = {};
+  }
+  if(dayNumber() > 1 && state.day1NightDead.length){
+    state.day1NightDead = [];
+  }
+  if(wasNight){
+    state.lastGuardTarget = state.nightTargets.guard;
+    state.lastGuardNight = dayNumber();
+    state.lastDreamTarget = state.nightTargets.dreamer;
+    state.lastDreamNight = dayNumber();
+    assignUnmarkedVillagers();
+    if(dayNumber() === 1){
+      state.day1NightDead = Object.values(state.players)
+        .filter(p=>!p.alive)
+        .map(p=>p.id);
+      reviveDay1NightDead();
+    }
+    state.nightAutoDead = {};
+  }
+
+  // 进入黑夜：清夜标记 + 清空当日固定投票角标（只清当前天）
+  if(isNight()){
+    clearNightMarks();
+    const d = dayNumber(); // 注意：此时 dayNumber() 已经是“夜”的天数
+    // 刚从白天切到同一天黑夜（例如 日1->夜2）时，d 已经是 2
+    // 所以清“上一天”的票：d-1
+    const prevDay = d - 1;
+    if(prevDay >= 1) delete state.lastDayVoteSaved[prevDay];
+  }
+
+  renderAll();
+  haptic();
+}
+
+/** =============================
+ *  重新开始 / 模板切换
+ *  ============================= */
+function hardReset(){
+  const cnt = state.playerCount;
+  state = initState(cnt);
+  buildRolePicker();
+  renderAll();
+  toast("已重新开始");
+}
+function cycleTemplate(){
+  const order = [9,12,16];
+  const idx = order.indexOf(state.playerCount);
+  const next = order[(idx+1)%order.length];
+  state = initState(next);
+  buildRolePicker();
+  renderAll();
+  toast(`切换为 ${next} 人模板`);
+}
+
+/** =============================
+ *  渲染总入口
+ *  ============================= */
+function renderAll(){
+  clampRound();
+  renderTop();
+  renderGrid();
+  renderActionsActive();
+
+  if(isNight()){
+    const skillText = state.nightSkill ? ({
+      wolf:"狼刀（刀）", witch:"女巫（救/毒）", seer:"预言家（查）", guard:"守卫（守）", dreamer:"摄梦人（摄）"
+    }[state.nightSkill]) : "未选择技能";
+    actionsHint.textContent = `黑夜：当前技能：${skillText}。先点技能按钮，再点目标号码标记（女巫需选择救/毒）。`;
+  }
+}
+
+/** =============================
+ *  事件绑定
+ *  ============================= */
+btnNext.addEventListener("click", nextStage);
+btnPrev.addEventListener("click", prevStage);
+btnTemplate.addEventListener("click", cycleTemplate);
+btnReset.addEventListener("click", hardReset);
+btnVote.addEventListener("click", openVote);
+btnHistory.addEventListener("click", openHistory);
+
+roleClose.addEventListener("click", closeRolePicker);
+roleMask.addEventListener("click", (e)=>{ if(e.target===roleMask) closeRolePicker(); });
+btnSetSheriff.addEventListener("click", ()=>{
+  if(roleTargetPlayerId == null) return;
+  setSheriff(roleTargetPlayerId);
+  closeRolePicker();
+});
+btnClearSheriff.addEventListener("click", ()=>{
+  clearSheriff();
+  closeRolePicker();
+});
+
+witchClose.addEventListener("click", closeWitchPicker);
+witchMask.addEventListener("click", (e)=>{ if(e.target===witchMask) closeWitchPicker(); });
+witchSave.addEventListener("click", ()=>{ applyWitchSkill("save"); });
+witchPoison.addEventListener("click", ()=>{ applyWitchSkill("poison"); });
+
+voteClose.addEventListener("click", closeVote);
+voteMask.addEventListener("click", (e)=>{ if(e.target===voteMask) closeVote(); });
+
+histClose.addEventListener("click", closeHistory);
+histMask.addEventListener("click", (e)=>{ if(e.target===histMask) closeHistory(); });
+
+// Night skill buttons
+actWolf.addEventListener("click", ()=>{ state.nightSkill = (state.nightSkill==="wolf")?null:"wolf"; renderAll(); haptic(); });
+actWitch.addEventListener("click", ()=>{
+  if(state.witchUsed.save && state.witchUsed.poison){
+    toast("女巫技能已用完");
+    return;
+  }
+  state.nightSkill = (state.nightSkill==="witch")?null:"witch";
+  renderAll(); haptic();
+});
+actSeer.addEventListener("click", ()=>{ state.nightSkill = (state.nightSkill==="seer")?null:"seer"; renderAll(); haptic(); });
+actGuard.addEventListener("click", ()=>{ state.nightSkill = (state.nightSkill==="guard")?null:"guard"; renderAll(); haptic(); });
+actDreamer.addEventListener("click", ()=>{ state.nightSkill = (state.nightSkill==="dreamer")?null:"dreamer"; renderAll(); haptic(); });
+actClear.addEventListener("click", ()=>{ clearNightMarks(); renderAll(); toast("已清空本夜标记"); haptic(); });
+
+// Vote modal buttons
+btnAssign.addEventListener("click", ()=>{
+  if(!voteSession) return;
+  voteSession.pendingAssign = true;
+  toast("请选择被投票人（单选）");
+  renderVoteModal();
+  haptic();
+});
+btnFinishVote.addEventListener("click", ()=>{
+  saveVoteSessionToHistory();
+  renderHistory();
+  closeVote();
+  haptic();
+});
+
+/** =============================
+ *  Init
+ *  ============================= */
+state = initState(12);
+buildRolePicker();
+renderAll();
+</script>
+<script>
+if("serviceWorker" in navigator){
+  window.addEventListener("load", ()=>{
+    navigator.serviceWorker.register("./sw.js");
+  });
+}
+</script></body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
