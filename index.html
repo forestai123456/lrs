@@ -31,6 +31,7 @@
       --dreamer:#7a66ff;   /* 紫 */
       --villager:#1f3a60;  /* 藏蓝 */
       --whitewolf:#ff2b2b; /* 红 */
+      --wolfking:#ff2b2b;  /* 红 */
       --idiot:#ffffff;     /* 白 */
 
       --deadOverlay: rgba(0,0,0,.45);
@@ -185,6 +186,10 @@
       overflow:hidden;
     }
     .cell:active{ transform:scale(.99); }
+    .cell.sheriffPick{
+      box-shadow: inset 0 0 0 2px rgba(60,200,110,.95), 0 0 0 2px rgba(60,200,110,.25);
+      background: rgba(60,200,110,.12);
+    }
 
     .num{ font-size:26px; font-weight:950; letter-spacing:.5px; line-height:1; }
 
@@ -194,6 +199,33 @@
       font-size:17px; /* 约为格子高度 1/3 */
       line-height:1;
       opacity:.98;
+    }
+    .role-name{
+      display:inline-block;
+      position:relative;
+      line-height:1;
+      background: transparent !important;
+      padding: 0 !important;
+      border: 0 !important;
+      filter: none !important;
+    }
+    .role-whitewolf{
+      font-weight: 900;
+      font-family: "Noto Sans SC","Source Han Sans SC","Microsoft YaHei","PingFang SC",sans-serif;
+      letter-spacing: -0.03em;
+      color: #fff;
+      -webkit-text-stroke: 0 rgba(0,0,0,0);
+      text-shadow:
+        -1px 0 0 #ff1f1f,
+        1px 0 0 #ff1f1f,
+        0 -1px 0 #ff1f1f,
+        0 1px 0 #ff1f1f,
+        1px 1px 0 #b00000,
+        2px 2px 0 #a00000,
+        3px 3px 0 #900000,
+        4px 4px 0 #800000,
+        5px 5px 0 #700000,
+        0 0 6px rgba(255,0,0,.35);
     }
 
     .badges{
@@ -334,6 +366,7 @@
       outline-offset: 0;
     }
     .muted{ opacity:.92; font-size:12px; line-height:1.4; }
+    #actionsHint{ font-size:14px; line-height:1.5; font-weight:700; }
 
     .bottomBar{
       position:sticky;
@@ -436,9 +469,132 @@
       cursor:pointer;
     }
     .modalBody{
-      padding:12px 14px 14px;
+      padding:4px 14px 14px;
       overflow:auto;
       -webkit-overflow-scrolling: touch;
+    }
+
+    /* Settings */
+    .settingsTabs{
+      display:grid;
+      grid-template-columns: repeat(3, minmax(0,1fr));
+      gap:8px;
+      margin-bottom:20px;
+      align-items:center;
+    }
+    .tabBtn{
+      border:none;
+      border-radius:12px;
+      padding:10px 12px;
+      font-weight:900;
+      font-size:15px;
+      cursor:pointer;
+      color:#fff;
+      background: rgba(255,255,255,.12);
+      -webkit-tap-highlight-color: transparent;
+      width:70%;
+      justify-self:center;
+    }
+    .tabBtn.active{
+      outline:2px solid rgba(255,255,255,.6);
+      background: rgba(255,255,255,.20);
+    }
+    .settingsList{
+      display:grid;
+      grid-template-columns: repeat(3, minmax(0,1fr));
+      gap:10px;
+    }
+    .roleSelect{
+      border:none;
+      border-radius:10px;
+      padding:8px 6px;
+      font-weight:900;
+      cursor:pointer;
+      color:#fff;
+      background: rgba(255,255,255,.10);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.10);
+      -webkit-tap-highlight-color: transparent;
+      text-align:center;
+      min-height:44px;
+      width:70%;
+      justify-self:center;
+    }
+    .roleSelect:active{ transform:scale(.99); }
+    .roleSelect.active{
+      outline:2px solid rgba(255,255,255,.6);
+      background: rgba(255,255,255,.22);
+    }
+    .roleSelect .rname{ font-size:14px; }
+    .roleSelect .roleCount{
+      margin-top:2px;
+      font-size:11px;
+      opacity:.9;
+    }
+    .settingsHint{
+      font-size:12px;
+      opacity:.9;
+      margin-top:8px;
+      line-height:1.5;
+    }
+
+    .settingsFooter{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      margin-top:16px;
+    }
+    .settingsFooter .btn{
+      width:100%;
+      font-size:15px;
+      padding:12px 14px;
+    }
+
+    .roleItem.disabled,
+    .roleItem:disabled{
+      opacity:.4;
+      cursor:not-allowed;
+    }
+
+    /* Count picker */
+    .pickerMask{
+      position:fixed; inset:0;
+      background: rgba(0,0,0,.55);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      z-index:60;
+      padding: max(14px, env(safe-area-inset-bottom));
+    }
+    .pickerMask.show{ display:flex; }
+    .pickerCard{
+      width:min(360px, 100%);
+      background: rgba(20,26,38,.98);
+      color:#fff;
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      border: 1px solid rgba(255,255,255,.10);
+      padding:14px;
+    }
+    .pickerTitle{
+      font-weight:950;
+      font-size:14px;
+      margin-bottom:10px;
+    }
+    .pickerGrid{
+      display:grid;
+      grid-template-columns: repeat(4, minmax(0,1fr));
+      gap:8px;
+    }
+    .pickerBtn{
+      border:none;
+      border-radius:12px;
+      padding:10px 8px;
+      font-weight:900;
+      font-size:14px;
+      cursor:pointer;
+      color:#fff;
+      background: rgba(255,255,255,.12);
+      -webkit-tap-highlight-color: transparent;
     }
     .witchActions{
       justify-content:center;
@@ -597,6 +753,10 @@
     }
     .app.day .icon{ color:#0a1830; background: rgba(0,0,0,.08); }
     .app.day .cell{ background: rgba(0,0,0,.07); box-shadow: inset 0 0 0 1px rgba(0,0,0,.08); }
+    .app.day .cell.sheriffPick{
+      box-shadow: inset 0 0 0 2px rgba(60,200,110,.95), 0 0 0 2px rgba(60,200,110,.25);
+      background: rgba(60,200,110,.12);
+    }
     .app.day .badge{ background: rgba(0,0,0,.18); color:#fff; }
     .app.day .mark{ background: rgba(0,0,0,.10); color:#0a1830; box-shadow: inset 0 0 0 1px rgba(0,0,0,.08); }
     .app.day .cornerVote{
@@ -631,7 +791,7 @@
           </div>
         </div>
         <div class="top-right">
-          <button id="btnTemplate" class="pill">模板：12人</button>
+          <button id="btnTemplate" class="pill">模板设置</button>
           <button id="btnPrev" class="pill">上一阶段</button>
         </div>
       </div>
@@ -652,8 +812,8 @@
         <div class="actions" id="actionsPanel">
           <div class="row">
             <button class="btn" id="actWolf">狼刀（刀）</button>
-            <button class="btn" id="actWitch">女巫（救/毒）</button>
             <button class="btn" id="actSeer">预言家（查）</button>
+            <button class="btn" id="actWitch">女巫（救/毒）</button>
             <button class="btn" id="actGuard">守卫（守）</button>
             <button class="btn" id="actDreamer">摄梦人（摄）</button>
             <button class="btn danger" id="actClear">清空本夜标记</button>
@@ -675,6 +835,35 @@
             <button id="btnHistory" class="miniBtn">历史记录</button>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsMask" class="modalMask">
+      <div class="modal">
+        <div class="modalHead">
+          <div class="mh">模板设置</div>
+          <button class="close" id="settingsClose">取消设置</button>
+        </div>
+        <div class="modalBody">
+          <div class="settingsTabs" id="settingsTabs">
+            <button class="tabBtn" data-size="9">≤9人</button>
+            <button class="tabBtn" data-size="12">≤12人</button>
+            <button class="tabBtn" data-size="16">≤16人</button>
+          </div>
+          <div class="settingsList" id="settingsRoleList"></div>
+          <div class="settingsHint" id="settingsHint"></div>
+          <div class="settingsFooter">
+            <button id="btnRandomAssign" class="btn">随机分配（可选）</button>
+            <button id="btnStartGame" class="btn primary">开始游戏</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="countPickerMask" class="pickerMask">
+      <div class="pickerCard">
+        <div class="pickerTitle" id="countPickerTitle">设置数量</div>
+        <div class="pickerGrid" id="countPickerGrid"></div>
       </div>
     </div>
 
@@ -766,6 +955,7 @@
 const ROLES = [
   { key:"werewolf", name:"狼人",  color:getCss("--werewolf"), tag:"粉色" },
   { key:"whitewolf",name:"白狼王",color:getCss("--whitewolf"), tag:"红色" },
+  { key:"wolfking", name:"狼王",  color:getCss("--wolfking"), tag:"玫红" },
   { key:"seer",     name:"预言家",color:getCss("--seer"), tag:"橙色" },
   { key:"witch",    name:"女巫",  color:getCss("--witch"), tag:"深灰" },
   { key:"guard",    name:"守卫",  color:getCss("--guard"), tag:"蓝色" },
@@ -785,6 +975,35 @@ const TEMPLATES = {
   9:  { label:"9人",  cols:3, rows:3 },
   12: { label:"12人", cols:4, rows:3 },
   16: { label:"16人", cols:4, rows:4 },
+};
+
+const ROLE_SETTINGS = [
+  { key:"werewolf", name:"狼人", max:6 },
+  { key:"whitewolf", name:"白狼王", max:1 },
+  { key:"wolfking", name:"狼王", max:1 },
+  { key:"seer", name:"预言家", max:1 },
+  { key:"witch", name:"女巫", max:1 },
+  { key:"guard", name:"守卫", max:1 },
+  { key:"hunter", name:"猎人", max:1 },
+  { key:"knight", name:"骑士", max:1 },
+  { key:"dreamer", name:"摄梦人", max:1 },
+  { key:"idiot", name:"白痴", max:1 },
+  { key:"villager", name:"村民", max:6 },
+];
+function blankTemplate(){
+  return {
+    werewolf:0, whitewolf:0, wolfking:0, seer:0, witch:0, guard:0,
+    hunter:0, knight:0, dreamer:0, idiot:0, villager:0
+  };
+}
+const appSettings = {
+  templateMode: false,
+  templateSize: 12,
+  templates: {
+    9: blankTemplate(),
+    12: blankTemplate(),
+    16: blankTemplate(),
+  }
 };
 
 const MAX_ROUNDS = 5; // 5轮：黑夜→白天
@@ -815,13 +1034,15 @@ function initState(playerCount=12){
     nightSkill: null,
     nightTargets: { wolf:null, witchSave:null, witchPoison:null, seer:null, guard:null, dreamer:null },
     nightAutoDead: {},
+    nightPoisoned: null,
     day1NightDead: [],
     lastGuardTarget: null,
     lastGuardNight: null,
     lastDreamTarget: null,
     lastDreamNight: null,
     day1DeadVoters: {},
-    witchUsed: { save:false, poison:false },
+    witchUsedTotal: { save:false, poison:false },
+    witchUsedNight: { save:false, poison:false },
 
     // Day1 警徽投票：voter -> candidate
     sheriffVote: { currentCandidate:null, votesByVoter:{}, round:1, tiedCandidates:null },
@@ -854,6 +1075,20 @@ const btnPrev = document.getElementById("btnPrev");
 const btnReset = document.getElementById("btnReset");
 const btnVote = document.getElementById("btnVote");
 const btnHistory = document.getElementById("btnHistory");
+
+// Settings modal
+const settingsMask = document.getElementById("settingsMask");
+const settingsTabs = document.getElementById("settingsTabs");
+const settingsRoleList = document.getElementById("settingsRoleList");
+const settingsHint = document.getElementById("settingsHint");
+const settingsClose = document.getElementById("settingsClose");
+const btnRandomAssign = document.getElementById("btnRandomAssign");
+const btnStartGame = document.getElementById("btnStartGame");
+const countPickerMask = document.getElementById("countPickerMask");
+const countPickerTitle = document.getElementById("countPickerTitle");
+const countPickerGrid = document.getElementById("countPickerGrid");
+let settingsTemplateSize = appSettings.templateSize;
+let settingsSnapshot = null;
 
 const actionsPanel = document.getElementById("actionsPanel");
 const actWolf = document.getElementById("actWolf");
@@ -955,6 +1190,58 @@ function setBackground(){
 function alivePlayerIds(){
   return Object.values(state.players).filter(p=>p.alive).map(p=>p.id);
 }
+function templateTotal(tpl){
+  return Object.values(tpl || {}).reduce((sum,n)=>sum + (Number(n)||0), 0);
+}
+function getActiveTemplate(){
+  if(!appSettings.templateMode) return null;
+  return appSettings.templates[appSettings.templateSize] || null;
+}
+function getRoleCounts(){
+  const counts = {};
+  for(const p of Object.values(state.players)){
+    if(p.roleKey && p.roleKey !== "none"){
+      counts[p.roleKey] = (counts[p.roleKey] || 0) + 1;
+    }
+  }
+  return counts;
+}
+function canAssignRole(playerId, roleKey){
+  if(roleKey === "none") return true;
+  const tpl = getActiveTemplate();
+  if(!tpl) return true;
+  const limit = tpl[roleKey] || 0;
+  if(limit <= 0) return false;
+  const counts = getRoleCounts();
+  const current = getPlayer(playerId).roleKey;
+  if(current === roleKey) return true;
+  return (counts[roleKey] || 0) < limit;
+}
+function getRoleOptions(){
+  const tpl = getActiveTemplate();
+  if(!tpl) return ROLES;
+  return ROLES.filter(r => r.key === "none" || (tpl[r.key] || 0) > 0);
+}
+function cloneTemplates(obj){
+  return JSON.parse(JSON.stringify(obj));
+}
+function isSkillEnabled(skillKey){
+  const tpl = getActiveTemplate();
+  if(!tpl) return true;
+  if(skillKey === "wolf") return (tpl.werewolf || 0) + (tpl.whitewolf || 0) > 0;
+  if(skillKey === "seer") return (tpl.seer || 0) > 0;
+  if(skillKey === "witch") return (tpl.witch || 0) > 0;
+  if(skillKey === "guard") return (tpl.guard || 0) > 0;
+  if(skillKey === "dreamer") return (tpl.dreamer || 0) > 0;
+  return true;
+}
+function shuffle(arr){
+  for(let i=arr.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
 
 /** =============================
  *  轻反馈
@@ -971,11 +1258,163 @@ function toast(msg){
 }
 
 /** =============================
+ *  模板设置
+ *  ============================= */
+function openSettings(){
+  settingsTemplateSize = appSettings.templateMode ? appSettings.templateSize : state.playerCount;
+  settingsSnapshot = cloneTemplates(appSettings.templates);
+  renderSettings();
+  settingsMask.classList.add("show");
+}
+function closeSettings(){
+  settingsMask.classList.remove("show");
+  settingsSnapshot = null;
+}
+function cancelSettings(){
+  if(settingsSnapshot){
+    appSettings.templates = cloneTemplates(settingsSnapshot);
+  }
+  renderSettings();
+  renderAll();
+}
+function renderSettings(){
+  const tpl = appSettings.templates[settingsTemplateSize];
+  const total = templateTotal(tpl);
+  settingsHint.textContent = total > settingsTemplateSize
+    ? `当前数量 ${total}/${settingsTemplateSize}，超过人数将无法开始。`
+    : `当前数量 ${total}/${settingsTemplateSize}，不足将留空。`;
+  settingsHint.style.color = (total > settingsTemplateSize) ? "#ff8c8c" : "";
+
+  settingsTabs.querySelectorAll(".tabBtn").forEach(btn=>{
+    const size = Number(btn.dataset.size);
+    btn.classList.toggle("active", size === settingsTemplateSize);
+  });
+
+  settingsRoleList.innerHTML = "";
+  for(const r of ROLE_SETTINGS){
+    const meta = roleMeta(r.key);
+    const count = tpl[r.key] || 0;
+    const btn = document.createElement("button");
+    btn.className = "roleSelect";
+    if(count > 0) btn.classList.add("active");
+    const countText = count > 0 ? `<div class="roleCount">x${count}</div>` : `<div class="roleCount">&nbsp;</div>`;
+    if(r.key === "whitewolf"){
+      btn.innerHTML = `<div class="rname"><span class="role-name role-whitewolf" data-text="${r.name}">${r.name}</span></div>${countText}`;
+    }else{
+      btn.innerHTML = `<div class="rname" style="color:${meta.color}">${r.name}</div>${countText}`;
+    }
+    btn.addEventListener("click", ()=>{
+      if(r.key === "werewolf" || r.key === "villager"){
+        openCountPicker(r.key, r.max);
+        return;
+      }
+      tpl[r.key] = count > 0 ? 0 : 1;
+      renderSettings();
+      if(appSettings.templateMode && settingsTemplateSize === appSettings.templateSize) renderAll();
+    });
+    settingsRoleList.appendChild(btn);
+  }
+}
+function openCountPicker(roleKey, max){
+  const meta = roleMeta(roleKey);
+  countPickerTitle.textContent = `${meta.name}数量`;
+  countPickerGrid.innerHTML = "";
+  for(let i=0;i<=max;i++){
+    const btn = document.createElement("button");
+    btn.className = "pickerBtn";
+    btn.textContent = String(i);
+    btn.addEventListener("click", ()=>{
+      const tpl = appSettings.templates[settingsTemplateSize];
+      tpl[roleKey] = i;
+      closeCountPicker();
+      renderSettings();
+      if(appSettings.templateMode && settingsTemplateSize === appSettings.templateSize) renderAll();
+    });
+    countPickerGrid.appendChild(btn);
+  }
+  countPickerMask.classList.add("show");
+}
+function closeCountPicker(){
+  countPickerMask.classList.remove("show");
+}
+function applyTemplate(size, doRandom=false){
+  const tpl = appSettings.templates[size];
+  const total = templateTotal(tpl);
+  if(total === 0){
+    appSettings.templateMode = false;
+    settingsTemplateSize = size;
+    state = initState(size);
+    buildRolePicker();
+    renderAll();
+    renderSettings();
+    toast("保持默认模式");
+    return true;
+  }
+  if(total > size){
+    toast("角色数量超过人数");
+    return false;
+  }
+  appSettings.templateMode = true;
+  appSettings.templateSize = size;
+  settingsTemplateSize = size;
+  state = initState(size);
+  if(doRandom) assignRandomRoles(tpl);
+  buildRolePicker();
+  renderAll();
+  renderSettings();
+  toast(doRandom ? "已随机分配" : `已应用${size}人模板`);
+  return true;
+}
+function assignRandomRoles(tpl){
+  const roles = [];
+  for(const [key, count] of Object.entries(tpl)){
+    for(let i=0;i<count;i++) roles.push(key);
+  }
+  const ids = [];
+  for(let i=1;i<=state.playerCount;i++) ids.push(i);
+  shuffle(ids);
+  shuffle(roles);
+  for(let i=0;i<ids.length;i++){
+    const p = getPlayer(ids[i]);
+    p.roleKey = roles[i] || "none";
+  }
+}
+function renderSkillVisibility(){
+  const showWolf = isSkillEnabled("wolf");
+  const showWitch = isSkillEnabled("witch");
+  const showSeer = isSkillEnabled("seer");
+  const showGuard = isSkillEnabled("guard");
+  const showDreamer = isSkillEnabled("dreamer");
+  actWolf.style.display = showWolf ? "" : "none";
+  actWitch.style.display = showWitch ? "" : "none";
+  actSeer.style.display = showSeer ? "" : "none";
+  actGuard.style.display = showGuard ? "" : "none";
+  actDreamer.style.display = showDreamer ? "" : "none";
+  const hasSkill = showWolf || showWitch || showSeer || showGuard || showDreamer;
+  if(state.nightSkill && !isSkillEnabled(state.nightSkill)){
+    state.nightSkill = null;
+  }
+  return hasSkill;
+}
+
+/** =============================
  *  黑夜标记
  *  ============================= */
-function clearNightMarks(){
+function clearNightMarks(revertPoison=false){
+  if(revertPoison){
+    const poisonInfo = state.nightPoisoned;
+    if(poisonInfo){
+      const p = getPlayer(poisonInfo.id);
+      if(p){
+        p.poisoned = poisonInfo.wasPoisoned;
+        if(poisonInfo.wasAlive) p.alive = true;
+      }
+    }
+  }
+  state.nightPoisoned = null;
   state.nightSkill = null;
   state.nightTargets = { wolf:null, witchSave:null, witchPoison:null, seer:null, guard:null, dreamer:null };
+  state.witchUsedNight = { save:false, poison:false };
   for(const idStr of Object.keys(state.nightAutoDead)){
     const id = Number(idStr);
     const p = getPlayer(id);
@@ -1001,6 +1440,21 @@ function restoreDay1NightDead(){
   }
 }
 function assignUnmarkedVillagers(){
+  const tpl = getActiveTemplate();
+  if(tpl){
+    const limit = tpl.villager || 0;
+    const counts = getRoleCounts();
+    let remaining = Math.max(0, limit - (counts.villager || 0));
+    if(remaining <= 0) return;
+    for(const p of Object.values(state.players)){
+      if(remaining <= 0) break;
+      if(p.roleKey === "none"){
+        p.roleKey = "villager";
+        remaining -= 1;
+      }
+    }
+    return;
+  }
   for(const p of Object.values(state.players)){
     if(p.roleKey === "none") p.roleKey = "villager";
   }
@@ -1040,9 +1494,14 @@ function resolveNightDeaths(){
   if(poisonTarget){
     const p = getPlayer(poisonTarget);
     if(p){
+      if(!state.nightPoisoned || state.nightPoisoned.id !== poisonTarget){
+        state.nightPoisoned = { id: poisonTarget, wasAlive: p.alive, wasPoisoned: p.poisoned };
+      }
       p.poisoned = true;
       p.alive = false;
     }
+  }else{
+    state.nightPoisoned = null;
   }
 
   const dreamTarget = state.nightTargets.dreamer;
@@ -1055,13 +1514,14 @@ function toggleNightTarget(skill, targetId){
   const current = state.nightTargets[skill];
   if(skill === "guard" && current !== targetId && state.lastGuardTarget === targetId){
     toast("违规");
-    return;
+    return false;
   }
   state.nightTargets[skill] = (current === targetId) ? null : targetId;
   for(const p of Object.values(state.players)){
     p.marks[skill] = (p.id === state.nightTargets[skill]);
   }
   resolveNightDeaths();
+  return true;
 }
 
 /** =============================
@@ -1157,6 +1617,9 @@ function finalizeSheriffElection(){
       state.sheriffVote.tiedCandidates = top;
       state.sheriffVote.currentCandidate = null;
       state.sheriffVote.votesByVoter = {};
+      for(const p of Object.values(state.players)){
+        p.isCandidate = top.includes(p.id);
+      }
       toast(`平票：${top.join(",")}，进入第二轮`);
       renderAll();
       return;
@@ -1220,14 +1683,44 @@ function finalizeSheriffElection(){
 /** =============================
  *  Role Picker
  *  ============================= */
-function buildRolePicker(){
+function buildRolePicker(targetId=null){
   roleGrid.innerHTML = "";
-  for(const r of ROLES){
+  const tpl = getActiveTemplate();
+  const counts = getRoleCounts();
+  const options = getRoleOptions();
+  for(const r of options){
     const btn = document.createElement("button");
     btn.className = "roleItem";
-    btn.innerHTML = `<div class="rname" style="color:${r.key==='none' ? '#fff' : r.color}">${r.name}</div>`;
+    const color = (r.key === "none") ? "#fff" : r.color;
+    let countText = "";
+    let disabled = false;
+    if(tpl && r.key !== "none"){
+      const limit = tpl[r.key] || 0;
+      const used = counts[r.key] || 0;
+      countText = `<div class="roleCount">${used}/${limit}</div>`;
+      if(limit <= 0) disabled = true;
+      else if(targetId != null){
+        const current = getPlayer(targetId).roleKey;
+        if(current !== r.key && used >= limit) disabled = true;
+      }else if(used >= limit){
+        disabled = true;
+      }
+    }
+    if(r.key === "whitewolf"){
+      btn.innerHTML = `<div class="rname"><span class="role-name role-whitewolf" data-text="${r.name}">${r.name}</span></div>${countText}`;
+    }else{
+      btn.innerHTML = `<div class="rname" style="color:${color}">${r.name}</div>${countText}`;
+    }
+    if(disabled){
+      btn.disabled = true;
+      btn.classList.add("disabled");
+    }
     btn.addEventListener("click", ()=>{
       if(roleTargetPlayerId == null) return;
+      if(!canAssignRole(roleTargetPlayerId, r.key)){
+        toast("该角色已满");
+        return;
+      }
       setRole(roleTargetPlayerId, r.key);
       closeRolePicker();
     });
@@ -1237,6 +1730,7 @@ function buildRolePicker(){
 function openRolePicker(playerId){
   roleTargetPlayerId = playerId;
   roleHead.textContent = `设置身份：${playerId}号`;
+  buildRolePicker(playerId);
   roleMask.classList.add("show");
 }
 function closeRolePicker(){
@@ -1244,6 +1738,10 @@ function closeRolePicker(){
   roleTargetPlayerId = null;
 }
 function setRole(playerId, roleKey){
+  if(!canAssignRole(playerId, roleKey)){
+    toast("该角色已满");
+    return;
+  }
   const p = getPlayer(playerId);
   p.roleKey = roleKey;
   renderAll();
@@ -1266,13 +1764,13 @@ function clearSheriff(){
  *  Witch
  *  ============================= */
 function openWitchPicker(targetId){
-  if(state.witchUsed.save && state.witchUsed.poison){
+  if(state.witchUsedTotal.save && state.witchUsedTotal.poison){
     toast("女巫技能已用完");
     return;
   }
   witchPendingTargetId = targetId;
-  witchSave.disabled = !!state.witchUsed.save;
-  witchPoison.disabled = !!state.witchUsed.poison;
+  witchSave.disabled = !!(state.witchUsedTotal.save || state.witchUsedNight.save);
+  witchPoison.disabled = !!(state.witchUsedTotal.poison || state.witchUsedNight.poison);
   witchMask.classList.add("show");
 }
 function closeWitchPicker(){
@@ -1284,8 +1782,12 @@ function applyWitchSkill(type){
   if(!targetId) return;
 
   if(type === "save"){
-    if(state.witchUsed.save && state.nightTargets.witchSave !== targetId){
+    if(state.witchUsedTotal.save || state.witchUsedNight.save){
       toast("救已使用过");
+      return;
+    }
+    if(state.witchUsedNight.poison){
+      toast("本夜只能用一个技能");
       return;
     }
     if(!state.nightTargets.wolf){
@@ -1300,23 +1802,28 @@ function applyWitchSkill(type){
     for(const p of Object.values(state.players)){
       p.marks.witchSave = (p.id === targetId);
     }
-    state.witchUsed.save = true;
+    state.witchUsedNight.save = true;
     resolveNightDeaths();
   }
 
   if(type === "poison"){
-    if(state.witchUsed.poison && state.nightTargets.witchPoison !== targetId){
+    if(state.witchUsedTotal.poison || state.witchUsedNight.poison){
       toast("毒已使用过");
+      return;
+    }
+    if(state.witchUsedNight.save){
+      toast("本夜只能用一个技能");
       return;
     }
     state.nightTargets.witchPoison = targetId;
     for(const p of Object.values(state.players)){
       p.marks.witchPoison = (p.id === targetId);
     }
-    state.witchUsed.poison = true;
+    state.witchUsedNight.poison = true;
     resolveNightDeaths();
   }
 
+  state.nightSkill = null;
   closeWitchPicker();
   renderAll();
   haptic();
@@ -1627,7 +2134,7 @@ function renderTop(){
     actionsPanel.classList.add("isHidden");
   }
 
-  btnTemplate.textContent = `模板：${state.playerCount}人`;
+  btnTemplate.textContent = `模板设置：${state.playerCount}人`;
 }
 
 function renderActionsActive(){
@@ -1664,6 +2171,9 @@ function renderGrid(){
     const cell = document.createElement("div");
     cell.className = "cell" + (p.alive ? "" : " dead");
     cell.dataset.id = id;
+    if(isSheriffVoting && state.sheriffVote.currentCandidate === id){
+      cell.classList.add("sheriffPick");
+    }
 
     const num = document.createElement("div");
     num.className = "num";
@@ -1673,8 +2183,14 @@ function renderGrid(){
     const role = document.createElement("div");
     role.className = "role";
     const meta = roleMeta(p.roleKey);
-    role.textContent = (p.roleKey==="none") ? "" : meta.name;
-    role.style.color = meta.color;
+    if(p.roleKey==="none"){
+      role.textContent = "";
+    }else if(p.roleKey === "whitewolf"){
+      role.innerHTML = `<span class="role-name role-whitewolf" data-text="${meta.name}">${meta.name}</span>`;
+    }else{
+      role.textContent = meta.name;
+      role.style.color = meta.color;
+    }
 
     const badges = document.createElement("div");
     badges.className = "badges";
@@ -1699,9 +2215,15 @@ function renderGrid(){
         b.classList.add("voted");
         badges.appendChild(b);
       }
-      // 平票候选标记（提示更明显）
-      if(p.isCandidate && top.length > 1 && top.includes(p.id)){
+    }
+    // 候选/平票候选标记
+    if(isSheriffVoting && p.isCandidate){
+      if(state.sheriffVote.round === 2){
         const b2 = makeBadge("平票候选");
+        b2.classList.add("tie");
+        badges.appendChild(b2);
+      }else if(top.length > 1 && top.includes(p.id)){
+        const b2 = makeBadge("候选");
         b2.classList.add("tie");
         badges.appendChild(b2);
       }
@@ -1877,8 +2399,11 @@ function onCellTap(id){
     const canSeerDead = state.nightSkill === "seer";
     const canDreamDead = state.nightSkill === "dreamer";
     if(!p.alive && !canGuardDead && !canSeerDead && !canDreamDead) return;
-    toggleNightTarget(state.nightSkill, id);
-    renderAll(); haptic();
+    if(toggleNightTarget(state.nightSkill, id)){
+      state.nightSkill = null;
+      renderAll();
+      haptic();
+    }
     return;
   }
 
@@ -1956,6 +2481,9 @@ function nextStage(){
     state.day1NightDead = [];
   }
   if(wasNight){
+    state.witchUsedTotal.save = state.witchUsedTotal.save || state.witchUsedNight.save;
+    state.witchUsedTotal.poison = state.witchUsedTotal.poison || state.witchUsedNight.poison;
+    state.witchUsedNight = { save:false, poison:false };
     state.lastGuardTarget = state.nightTargets.guard;
     state.lastGuardNight = dayNumber();
     state.lastDreamTarget = state.nightTargets.dreamer;
@@ -1972,7 +2500,7 @@ function nextStage(){
 
   // 进入黑夜：清夜标记 + 清空当日固定投票角标（只清当前天）
   if(isNight()){
-    clearNightMarks();
+    clearNightMarks(false);
     const d = dayNumber(); // 注意：此时 dayNumber() 已经是“夜”的天数
     // 刚从白天切到同一天黑夜（例如 日1->夜2）时，d 已经是 2
     // 所以清“上一天”的票：d-1
@@ -1990,6 +2518,7 @@ function nextStage(){
 function hardReset(){
   const cnt = state.playerCount;
   state = initState(cnt);
+  if(appSettings.templateMode) appSettings.templateSize = cnt;
   buildRolePicker();
   renderAll();
   toast("已重新开始");
@@ -2011,13 +2540,29 @@ function renderAll(){
   clampRound();
   renderTop();
   renderGrid();
+  const hasSkill = renderSkillVisibility();
   renderActionsActive();
 
   if(isNight()){
-    const skillText = state.nightSkill ? ({
-      wolf:"狼刀（刀）", witch:"女巫（救/毒）", seer:"预言家（查）", guard:"守卫（守）", dreamer:"摄梦人（摄）"
-    }[state.nightSkill]) : "未选择技能";
-    actionsHint.textContent = `黑夜：当前技能：${skillText}。先点技能按钮，再点目标号码标记（女巫需选择救/毒）。`;
+    if(!hasSkill){
+      actionsHint.style.color = "";
+      actionsHint.textContent = "当前模板无夜间技能。";
+    }else{
+      const skillText = state.nightSkill ? ({
+        wolf:"狼刀（刀）", witch:"女巫（救/毒）", seer:"预言家（查）", guard:"守卫（守）", dreamer:"摄梦人（摄）"
+      }[state.nightSkill]) : "未选择技能";
+      const skillColorVar = ({
+        wolf:"--werewolf",
+        witch:"--witch",
+        seer:"--seer",
+        guard:"--guard",
+        dreamer:"--dreamer"
+      })[state.nightSkill];
+      actionsHint.style.color = skillColorVar ? getCss(skillColorVar) : "";
+      actionsHint.textContent = `当前技能：${skillText}，请选择目标。`;
+    }
+  }else{
+    actionsHint.style.color = "";
   }
 }
 
@@ -2026,10 +2571,30 @@ function renderAll(){
  *  ============================= */
 btnNext.addEventListener("click", nextStage);
 btnPrev.addEventListener("click", prevStage);
-btnTemplate.addEventListener("click", cycleTemplate);
+btnTemplate.addEventListener("click", openSettings);
 btnReset.addEventListener("click", hardReset);
 btnVote.addEventListener("click", openVote);
 btnHistory.addEventListener("click", openHistory);
+
+settingsClose.addEventListener("click", cancelSettings);
+settingsMask.addEventListener("click", (e)=>{ if(e.target===settingsMask) closeSettings(); });
+settingsTabs.addEventListener("click", (e)=>{
+  const btn = e.target.closest(".tabBtn");
+  if(!btn) return;
+  settingsTemplateSize = Number(btn.dataset.size);
+  renderSettings();
+});
+btnRandomAssign.addEventListener("click", ()=>{
+  if(applyTemplate(settingsTemplateSize, true)){
+    closeSettings();
+  }
+});
+btnStartGame.addEventListener("click", ()=>{
+  if(applyTemplate(settingsTemplateSize, false)){
+    closeSettings();
+  }
+});
+countPickerMask.addEventListener("click", (e)=>{ if(e.target===countPickerMask) closeCountPicker(); });
 
 roleClose.addEventListener("click", closeRolePicker);
 roleMask.addEventListener("click", (e)=>{ if(e.target===roleMask) closeRolePicker(); });
@@ -2057,7 +2622,7 @@ histMask.addEventListener("click", (e)=>{ if(e.target===histMask) closeHistory()
 // Night skill buttons
 actWolf.addEventListener("click", ()=>{ state.nightSkill = (state.nightSkill==="wolf")?null:"wolf"; renderAll(); haptic(); });
 actWitch.addEventListener("click", ()=>{
-  if(state.witchUsed.save && state.witchUsed.poison){
+  if(state.witchUsedTotal.save && state.witchUsedTotal.poison){
     toast("女巫技能已用完");
     return;
   }
@@ -2067,7 +2632,7 @@ actWitch.addEventListener("click", ()=>{
 actSeer.addEventListener("click", ()=>{ state.nightSkill = (state.nightSkill==="seer")?null:"seer"; renderAll(); haptic(); });
 actGuard.addEventListener("click", ()=>{ state.nightSkill = (state.nightSkill==="guard")?null:"guard"; renderAll(); haptic(); });
 actDreamer.addEventListener("click", ()=>{ state.nightSkill = (state.nightSkill==="dreamer")?null:"dreamer"; renderAll(); haptic(); });
-actClear.addEventListener("click", ()=>{ clearNightMarks(); renderAll(); toast("已清空本夜标记"); haptic(); });
+actClear.addEventListener("click", ()=>{ clearNightMarks(true); renderAll(); toast("已清空本夜标记"); haptic(); });
 
 // Vote modal buttons
 btnAssign.addEventListener("click", ()=>{
