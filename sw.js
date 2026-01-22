@@ -1,4 +1,4 @@
-﻿const CACHE_NAME = "wrs-cache-v5";
+﻿const CACHE_NAME = "wrs-cache-v6";
 const ASSETS = [
   "./",
   "./index.html",
@@ -33,6 +33,7 @@ self.addEventListener("fetch", (event) => {
     )
   );
 });
+
 
 
 
