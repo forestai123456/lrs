@@ -147,6 +147,18 @@
     .phaseHint b{ font-size:13px; }
     .phaseHint .small{ opacity:.9; font-size:12px; margin-top:4px; line-height:1.35; }
     .phaseHint .right{ text-align:right; font-weight:900; font-size:12px; opacity:.95; }
+    .phaseHint.compact{
+      margin:0 14px 6px;
+      padding:6px 10px;
+    }
+    .phaseHint.compact b{ display:none; }
+    .phaseHint.compact .small{
+      margin-top:0;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .phaseHint.compact .right{ display:none; }
 
     .boardWrap{
       flex:1;
@@ -192,6 +204,11 @@
     }
 
     .num{ font-size:26px; font-weight:950; letter-spacing:.5px; line-height:1; }
+    .numWrap{
+      display:flex;
+      align-items:center;
+      gap:6px;
+    }
 
     .role{
       margin-top:6px;
@@ -293,18 +310,16 @@
 
     /* 固定角标：显示该玩家“已投给谁” */
     .cornerVote{
-      position:absolute;
-      right:8px;
-      bottom:8px;
+      position:relative;
+      top:-2px;
       font-size:11px;
       font-weight:950;
-      padding:4px 6px;
+      padding:3px 6px;
       border-radius:999px;
       background: rgba(255,255,255,.16);
       color:#fff;
       box-shadow: inset 0 0 0 1px rgba(255,255,255,.14);
       pointer-events:none;
-      z-index:2;
     }
 
     .deadOverlay{
@@ -371,7 +386,7 @@
     .bottomBar{
       position:sticky;
       bottom:0;
-      padding:12px 14px 14px;
+      padding:6px 14px 10px;
       backdrop-filter: blur(10px);
       background: linear-gradient(to top, rgba(0,0,0,.35), rgba(0,0,0,0));
     }
@@ -421,7 +436,7 @@
     .miniBtn:active{ transform:scale(.99); }
 
     .nextRow{
-      margin-top:12px;
+      margin-top:6px;
       display:flex;
       gap:10px;
       align-items:center;
@@ -786,7 +801,7 @@
         <div class="top-left">
           <div id="phaseIcon" class="icon"><span class="moon">🌙</span></div>
           <div class="title">
-            <div id="phaseTitle" class="h1">第1天黑夜</div>
+            <div id="phaseTitle" class="h1">第1夜</div>
             <div id="phaseSub" class="sub"></div>
           </div>
         </div>
@@ -799,7 +814,7 @@
       <div id="phaseHint" class="phaseHint">
         <div>
           <b id="hintMain">黑夜记录</b>
-          <div id="hintSub" class="small">点号码：标记身份；长按2秒：生死切换</div>
+          <div id="hintSub" class="small">点号码：标记身份；长按2秒：切换存亡</div>
         </div>
         <div class="right" id="hintRight">第1轮</div>
       </div>
@@ -879,6 +894,7 @@
           <div class="row" style="margin-top:12px;">
             <button id="btnSetSheriff" class="btn primary">设为警长</button>
             <button id="btnClearSheriff" class="btn">取消警长</button>
+            <button id="btnIdiotNoVote" class="btn danger" style="display:none;">失去投票权</button>
           </div>
           <div style="margin-top:10px;opacity:.85;font-size:12px;line-height:1.5;">
             说明：身份用不同颜色显示；身份字号约为号码格高度的 1/3。
@@ -1035,6 +1051,7 @@ function initState(playerCount=12){
     nightTargets: { wolf:null, witchSave:null, witchPoison:null, seer:null, guard:null, dreamer:null },
     nightAutoDead: {},
     nightPoisoned: null,
+    nightDreamKilled: null,
     day1NightDead: [],
     lastGuardTarget: null,
     lastGuardNight: null,
@@ -1050,6 +1067,8 @@ function initState(playerCount=12){
     // 白天投票：为“固定角标”保留最后一次未清空的投票
     // day -> { voter -> target }（只显示最后一次“完成”保存的投票）
     lastDayVoteSaved: {},
+    // 进入黑夜前备份白天投票角标，用于“上一阶段”回滚
+    lastDayVoteBackup: {},
 
     history: [],
     voteCounterByDay: { 1:0, 2:0, 3:0, 4:0, 5:0 },
@@ -1065,6 +1084,7 @@ const gridEl = document.getElementById("grid");
 const phaseIconEl = document.getElementById("phaseIcon");
 const phaseTitleEl = document.getElementById("phaseTitle");
 const phaseSubEl = document.getElementById("phaseSub");
+const phaseHint = document.getElementById("phaseHint");
 const hintMainEl = document.getElementById("hintMain");
 const hintSubEl = document.getElementById("hintSub");
 const hintRightEl = document.getElementById("hintRight");
@@ -1087,6 +1107,7 @@ const btnStartGame = document.getElementById("btnStartGame");
 const countPickerMask = document.getElementById("countPickerMask");
 const countPickerTitle = document.getElementById("countPickerTitle");
 const countPickerGrid = document.getElementById("countPickerGrid");
+const btnIdiotNoVote = document.getElementById("btnIdiotNoVote");
 let settingsTemplateSize = appSettings.templateSize;
 let settingsSnapshot = null;
 
@@ -1145,7 +1166,7 @@ function markLabel(text){
 }
 function phaseLabel(){
   const d = dayNumber();
-  return isNight() ? `第${d}天黑夜` : `第${d}天白天`;
+  return isNight() ? `第${d}夜` : `第${d}天`;
 }
 function clampRound(){
   if(state.phaseIndex < 0) state.phaseIndex = 0;
@@ -1299,7 +1320,7 @@ function renderSettings(){
     if(count > 0) btn.classList.add("active");
     const countText = count > 0 ? `<div class="roleCount">x${count}</div>` : `<div class="roleCount">&nbsp;</div>`;
     if(r.key === "whitewolf"){
-      btn.innerHTML = `<div class="rname"><span class="role-name role-whitewolf" data-text="${r.name}">${r.name}</span></div>${countText}`;
+      btn.innerHTML = `<div class="rname"><span class="role-name role-whitewolf">${r.name}</span></div>${countText}`;
     }else{
       btn.innerHTML = `<div class="rname" style="color:${meta.color}">${r.name}</div>${countText}`;
     }
@@ -1412,6 +1433,7 @@ function clearNightMarks(revertPoison=false){
     }
   }
   state.nightPoisoned = null;
+  state.nightDreamKilled = null;
   state.nightSkill = null;
   state.nightTargets = { wolf:null, witchSave:null, witchPoison:null, seer:null, guard:null, dreamer:null };
   state.witchUsedNight = { save:false, poison:false };
@@ -1491,6 +1513,15 @@ function resolveNightDeaths(){
   }
 
   const poisonTarget = state.nightTargets.witchPoison;
+  if(state.nightPoisoned && state.nightPoisoned.id !== poisonTarget){
+    const p = getPlayer(state.nightPoisoned.id);
+    if(p){
+      p.poisoned = state.nightPoisoned.wasPoisoned;
+      const killedByWolf = state.nightAutoDead[state.nightPoisoned.id];
+      if(state.nightPoisoned.wasAlive && !killedByWolf) p.alive = true;
+    }
+    state.nightPoisoned = null;
+  }
   if(poisonTarget){
     const p = getPlayer(poisonTarget);
     if(p){
@@ -1505,9 +1536,27 @@ function resolveNightDeaths(){
   }
 
   const dreamTarget = state.nightTargets.dreamer;
+  if(state.nightDreamKilled && state.nightDreamKilled.id !== dreamTarget){
+    const p = getPlayer(state.nightDreamKilled.id);
+    if(p){
+      const killedByWolf = state.nightAutoDead[state.nightDreamKilled.id];
+      const killedByPoison = state.nightTargets.witchPoison === state.nightDreamKilled.id || p.poisoned;
+      if(state.nightDreamKilled.wasAlive && !killedByWolf && !killedByPoison){
+        p.alive = true;
+      }
+    }
+    state.nightDreamKilled = null;
+  }
   if(dreamTarget && state.lastDreamTarget === dreamTarget){
     const p = getPlayer(dreamTarget);
-    if(p) p.alive = false;
+    if(p){
+      if(!state.nightDreamKilled || state.nightDreamKilled.id !== dreamTarget){
+        state.nightDreamKilled = { id: dreamTarget, wasAlive: p.alive };
+      }
+      p.alive = false;
+    }
+  }else if(!dreamTarget){
+    state.nightDreamKilled = null;
   }
 }
 function toggleNightTarget(skill, targetId){
@@ -1707,7 +1756,7 @@ function buildRolePicker(targetId=null){
       }
     }
     if(r.key === "whitewolf"){
-      btn.innerHTML = `<div class="rname"><span class="role-name role-whitewolf" data-text="${r.name}">${r.name}</span></div>${countText}`;
+      btn.innerHTML = `<div class="rname"><span class="role-name role-whitewolf">${r.name}</span></div>${countText}`;
     }else{
       btn.innerHTML = `<div class="rname" style="color:${color}">${r.name}</div>${countText}`;
     }
@@ -1731,6 +1780,8 @@ function openRolePicker(playerId){
   roleTargetPlayerId = playerId;
   roleHead.textContent = `设置身份：${playerId}号`;
   buildRolePicker(playerId);
+  const p = getPlayer(playerId);
+  btnIdiotNoVote.style.display = (!isNight() && p && p.roleKey === "idiot" && p.canVote) ? "" : "none";
   roleMask.classList.add("show");
 }
 function closeRolePicker(){
@@ -1770,7 +1821,8 @@ function openWitchPicker(targetId){
   }
   witchPendingTargetId = targetId;
   witchSave.disabled = !!(state.witchUsedTotal.save || state.witchUsedNight.save);
-  witchPoison.disabled = !!(state.witchUsedTotal.poison || state.witchUsedNight.poison);
+  // Allow retarget/cancel poison within the same night
+  witchPoison.disabled = !!(state.witchUsedTotal.poison);
   witchMask.classList.add("show");
 }
 function closeWitchPicker(){
@@ -1807,20 +1859,40 @@ function applyWitchSkill(type){
   }
 
   if(type === "poison"){
-    if(state.witchUsedTotal.poison || state.witchUsedNight.poison){
-      toast("毒已使用过");
-      return;
-    }
     if(state.witchUsedNight.save){
       toast("本夜只能用一个技能");
       return;
     }
-    state.nightTargets.witchPoison = targetId;
-    for(const p of Object.values(state.players)){
-      p.marks.witchPoison = (p.id === targetId);
+    if(state.witchUsedTotal.poison){
+      toast("毒已使用过");
+      return;
     }
-    state.witchUsedNight.poison = true;
-    resolveNightDeaths();
+    const current = state.nightTargets.witchPoison;
+    if(state.witchUsedNight.poison){
+      if(current === targetId){
+        // Cancel poison for this night
+        state.nightTargets.witchPoison = null;
+        for(const p of Object.values(state.players)){
+          p.marks.witchPoison = false;
+        }
+        state.witchUsedNight.poison = false;
+        resolveNightDeaths();
+      }else{
+        // Retarget poison within the same night
+        state.nightTargets.witchPoison = targetId;
+        for(const p of Object.values(state.players)){
+          p.marks.witchPoison = (p.id === targetId);
+        }
+        resolveNightDeaths();
+      }
+    }else{
+      state.nightTargets.witchPoison = targetId;
+      for(const p of Object.values(state.players)){
+        p.marks.witchPoison = (p.id === targetId);
+      }
+      state.witchUsedNight.poison = true;
+      resolveNightDeaths();
+    }
   }
 
   state.nightSkill = null;
@@ -2083,7 +2155,14 @@ function escapeHtml(str){
  *  ============================= */
 function renderTop(){
   setBackground();
-  phaseTitleEl.textContent = phaseLabel();
+  const isCompactHint = state.playerCount === 16;
+  if(!isNight() && dayNumber() === 1 && state.day1SubStage === 0){
+    phaseTitleEl.textContent = "上警";
+  }else if(!isNight() && dayNumber() === 1 && state.day1SubStage === 1){
+    phaseTitleEl.textContent = "选警长";
+  }else{
+    phaseTitleEl.textContent = phaseLabel();
+  }
 
   const d = dayNumber();
   phaseIconEl.innerHTML = isNight()
@@ -2092,21 +2171,26 @@ function renderTop(){
   phaseSubEl.textContent = "";
 
   // 右侧默认：第几轮
-  hintRightEl.textContent = `第${d}轮`;
+  hintRightEl.textContent = (isCompactHint || state.playerCount === 12 || state.playerCount === 9) ? "" : `第${d}轮`;
+  phaseHint.classList.toggle("compact", isCompactHint);
 
   if(isNight()){
-    hintMainEl.textContent = "黑夜记录";
-    hintSubEl.textContent = "点号码：标记身份；长按2秒：生死切换（黑夜可用技能按钮标记目标）";
+    hintMainEl.textContent = isCompactHint ? "" : "黑夜记录";
+    hintSubEl.textContent = isCompactHint
+      ? "点号码标记；长按切换存亡；用技能按钮选目标"
+      : "点号码：标记身份；长按2秒：切换存亡（黑夜可用技能按钮标记目标）";
     actionsPanel.classList.remove("isHidden");
   }else{
     const isDay1 = (dayNumber() === 1);
 
     if(isDay1 && state.day1SubStage===0){
-      hintMainEl.textContent = "第1天上警报名";
-      hintSubEl.textContent = "点号码：标记/取消上警；长按2秒：生死切换";
+      hintMainEl.textContent = isCompactHint ? "上警报名" : "第1天上警报名";
+      hintSubEl.textContent = isCompactHint
+        ? "点号码上警；长按切换存亡"
+        : "点号码：标记/取消上警；长按2秒：切换存亡";
     }else if(isDay1 && state.day1SubStage===1){
       const roundText = state.sheriffVote.round === 2 ? "（第2轮）" : "";
-      hintMainEl.textContent = `警徽投票${roundText}（实时计票）`;
+      hintMainEl.textContent = isCompactHint ? "警徽投票" : `警徽投票${roundText}（实时计票）`;
 
       const { candidates, tally, max, top } = computeSheriffTally();
       candidates.sort((a,b)=>a-b);
@@ -2125,10 +2209,14 @@ function renderTop(){
           : `平票：${top.join(",")}（最高=${max}）→ 规则：进入第二轮`;
       }
       const current = state.sheriffVote.currentCandidate ? `计票对象：${state.sheriffVote.currentCandidate}号` : `先点上警玩家选计票对象`;
-      hintSubEl.textContent = `${current}\n${lines.join("  |  ")}${tieText ? "\n" + tieText : ""}`;
+      hintSubEl.textContent = isCompactHint
+        ? "先点上警玩家选计票对象"
+        : `${current}\n${lines.join("  |  ")}${tieText ? "\n" + tieText : ""}`;
     }else{
-      hintMainEl.textContent = "白天记录";
-      hintSubEl.textContent = "点号码：标记身份；长按2秒：生死切换；投票请点底部“投票选项”（保存后主界面显示→X角标）";
+      hintMainEl.textContent = isCompactHint ? "白天" : "白天记录";
+      hintSubEl.textContent = isCompactHint
+        ? "点号码标记；长按切换存亡；投票点“投票选项”"
+        : "点号码：标记身份；长按2秒：切换存亡；投票请点底部“投票选项”（保存后主界面显示→X角标）";
     }
 
     actionsPanel.classList.add("isHidden");
@@ -2180,13 +2268,17 @@ function renderGrid(){
     num.style.color = isNight() ? "#fff" : "#0a1830";
     num.textContent = id;
 
+    const numWrap = document.createElement("div");
+    numWrap.className = "numWrap";
+    numWrap.appendChild(num);
+
     const role = document.createElement("div");
     role.className = "role";
     const meta = roleMeta(p.roleKey);
     if(p.roleKey==="none"){
       role.textContent = "";
     }else if(p.roleKey === "whitewolf"){
-      role.innerHTML = `<span class="role-name role-whitewolf" data-text="${meta.name}">${meta.name}</span>`;
+      role.innerHTML = `<span class="role-name role-whitewolf">${meta.name}</span>`;
     }else{
       role.textContent = meta.name;
       role.style.color = meta.color;
@@ -2275,7 +2367,7 @@ function renderGrid(){
         const cv = document.createElement("div");
         cv.className = "cornerVote";
         cv.textContent = `→${t}`;
-        cell.appendChild(cv);
+        numWrap.appendChild(cv);
       }
     }
 
@@ -2284,7 +2376,7 @@ function renderGrid(){
     deadOverlay.textContent = "☠️";
 
     cell.appendChild(badges);
-    cell.appendChild(num);
+    cell.appendChild(numWrap);
     cell.appendChild(role);
     cell.appendChild(deadOverlay);
 
@@ -2434,6 +2526,13 @@ function prevStage(){
     }
   }
 
+  if(isNight()){
+    const prevDay = dayNumber() - 1;
+    if(prevDay >= 1 && state.lastDayVoteBackup && state.lastDayVoteBackup[prevDay]){
+      state.lastDayVoteSaved[prevDay] = { ...state.lastDayVoteBackup[prevDay] };
+    }
+  }
+
   if(state.phaseIndex <= 0){
     toast("已是最早阶段");
     return;
@@ -2505,7 +2604,14 @@ function nextStage(){
     // 刚从白天切到同一天黑夜（例如 日1->夜2）时，d 已经是 2
     // 所以清“上一天”的票：d-1
     const prevDay = d - 1;
-    if(prevDay >= 1) delete state.lastDayVoteSaved[prevDay];
+    if(prevDay >= 1){
+      if(state.lastDayVoteSaved[prevDay]){
+        state.lastDayVoteBackup[prevDay] = { ...state.lastDayVoteSaved[prevDay] };
+      }else{
+        delete state.lastDayVoteBackup[prevDay];
+      }
+      delete state.lastDayVoteSaved[prevDay];
+    }
   }
 
   renderAll();
@@ -2606,6 +2712,16 @@ btnSetSheriff.addEventListener("click", ()=>{
 btnClearSheriff.addEventListener("click", ()=>{
   clearSheriff();
   closeRolePicker();
+});
+btnIdiotNoVote.addEventListener("click", ()=>{
+  if(roleTargetPlayerId == null) return;
+  const p = getPlayer(roleTargetPlayerId);
+  if(!p || isNight() || p.roleKey !== "idiot" || !p.canVote) return;
+  p.canVote = false;
+  toast(`${p.id}号白痴失去投票权`);
+  closeRolePicker();
+  renderAll();
+  haptic();
 });
 
 witchClose.addEventListener("click", closeWitchPicker);
