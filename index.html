@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover" />
   <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#0b2a54" />
+  <meta id="theme-color" name="theme-color" content="#0b2a54" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="狼人杀助手" />
@@ -824,17 +824,18 @@
           <div id="grid" class="grid"></div>
         </div>
 
-        <div class="actions" id="actionsPanel">
-          <div class="row">
-            <button class="btn" id="actWolf">狼刀（刀）</button>
-            <button class="btn" id="actSeer">预言家（查）</button>
-            <button class="btn" id="actWitch">女巫（救/毒）</button>
-            <button class="btn" id="actGuard">守卫（守）</button>
-            <button class="btn" id="actDreamer">摄梦人（摄）</button>
-            <button class="btn danger" id="actClear">清空本夜标记</button>
-          </div>
-          <div class="muted" id="actionsHint">黑夜：先点一个技能按钮，再点目标号码进行标记（每个技能仅一个目标，可重复点目标取消）。</div>
+      <div class="actions" id="actionsPanel">
+        <div class="row">
+          <button class="btn" id="actWolf">狼刀（刀）</button>
+          <button class="btn" id="actSeer">预言家（查）</button>
+          <button class="btn" id="actWitch">女巫（救/毒）</button>
+          <button class="btn" id="actGuard">守卫（守）</button>
+          <button class="btn" id="actDreamer">摄梦人（摄）</button>
+          <button class="btn danger" id="actBoom">白狼王（自爆）</button>
+          <button class="btn danger" id="actClear">清空本夜标记</button>
         </div>
+        <div class="muted" id="actionsHint">黑夜：先点一个技能按钮，再点目标号码进行标记（每个技能仅一个目标，可重复点目标取消）。</div>
+      </div>
         <div class="nextRow">
           <button id="btnNext" class="bigBtn primary">下一阶段</button>
         </div>
@@ -1040,6 +1041,7 @@ function initState(playerCount=12){
       voteMarked:false,
       poisoned:false,
       canVote:true,
+      boomed:false,
     };
   }
 
@@ -1052,6 +1054,12 @@ function initState(playerCount=12){
     nightAutoDead: {},
     nightPoisoned: null,
     nightDreamKilled: null,
+    daySkill: null,
+    dayTargets: { whitewolfBoom:null },
+    dayBoomed: null,
+    whitewolfBoomDayUsed: null,
+    whitewolfBoomDisabled: false,
+    whitewolfBoomSkipSheriff: false,
     day1NightDead: [],
     lastGuardTarget: null,
     lastGuardNight: null,
@@ -1117,6 +1125,7 @@ const actWitch = document.getElementById("actWitch");
 const actSeer = document.getElementById("actSeer");
 const actGuard = document.getElementById("actGuard");
 const actDreamer = document.getElementById("actDreamer");
+const actBoom = document.getElementById("actBoom");
 const actClear = document.getElementById("actClear");
 const actionsHint = document.getElementById("actionsHint");
 
@@ -1207,6 +1216,10 @@ function canSheriffVote(id){
 function setBackground(){
   appEl.classList.toggle("night", isNight());
   appEl.classList.toggle("day", !isNight());
+  const themeMeta = document.getElementById("theme-color");
+  if(themeMeta){
+    themeMeta.setAttribute("content", isNight() ? "#0b2a54" : "#bfe3ff");
+  }
 }
 function alivePlayerIds(){
   return Object.values(state.players).filter(p=>p.alive).map(p=>p.id);
@@ -1250,11 +1263,15 @@ function isSkillEnabled(skillKey){
   const tpl = getActiveTemplate();
   if(!tpl) return true;
   if(skillKey === "wolf") return (tpl.werewolf || 0) + (tpl.whitewolf || 0) > 0;
+  if(skillKey === "whitewolf") return (tpl.whitewolf || 0) > 0;
   if(skillKey === "seer") return (tpl.seer || 0) > 0;
   if(skillKey === "witch") return (tpl.witch || 0) > 0;
   if(skillKey === "guard") return (tpl.guard || 0) > 0;
   if(skillKey === "dreamer") return (tpl.dreamer || 0) > 0;
   return true;
+}
+function hasWhitewolfRole(){
+  return Object.values(state.players).some(p=>p.roleKey === "whitewolf");
 }
 function shuffle(arr){
   for(let i=arr.length-1;i>0;i--){
@@ -1406,16 +1423,35 @@ function renderSkillVisibility(){
   const showSeer = isSkillEnabled("seer");
   const showGuard = isSkillEnabled("guard");
   const showDreamer = isSkillEnabled("dreamer");
-  actWolf.style.display = showWolf ? "" : "none";
-  actWitch.style.display = showWitch ? "" : "none";
-  actSeer.style.display = showSeer ? "" : "none";
-  actGuard.style.display = showGuard ? "" : "none";
-  actDreamer.style.display = showDreamer ? "" : "none";
-  const hasSkill = showWolf || showWitch || showSeer || showGuard || showDreamer;
-  if(state.nightSkill && !isSkillEnabled(state.nightSkill)){
-    state.nightSkill = null;
+  const showBoom = hasWhitewolfRole()
+    && !state.whitewolfBoomDisabled
+    && (state.whitewolfBoomDayUsed == null || dayNumber() === state.whitewolfBoomDayUsed);
+  if(isNight()){
+    actWolf.style.display = showWolf ? "" : "none";
+    actWitch.style.display = showWitch ? "" : "none";
+    actSeer.style.display = showSeer ? "" : "none";
+    actGuard.style.display = showGuard ? "" : "none";
+    actDreamer.style.display = showDreamer ? "" : "none";
+    actBoom.style.display = "none";
+    actClear.style.display = "";
+    actClear.textContent = "清空本夜标记";
+    const hasSkill = showWolf || showWitch || showSeer || showGuard || showDreamer;
+    if(state.nightSkill && !isSkillEnabled(state.nightSkill)){
+      state.nightSkill = null;
+    }
+    return hasSkill;
   }
-  return hasSkill;
+
+  actWolf.style.display = "none";
+  actWitch.style.display = "none";
+  actSeer.style.display = "none";
+  actGuard.style.display = "none";
+  actDreamer.style.display = "none";
+  actBoom.style.display = showBoom ? "" : "none";
+  actClear.style.display = showBoom ? "" : "none";
+  actClear.textContent = "清空本轮标记";
+  if(state.daySkill && !showBoom) state.daySkill = null;
+  return showBoom;
 }
 
 /** =============================
@@ -2174,6 +2210,7 @@ function renderTop(){
   hintRightEl.textContent = (isCompactHint || state.playerCount === 12 || state.playerCount === 9) ? "" : `第${d}轮`;
   phaseHint.classList.toggle("compact", isCompactHint);
 
+  const showDayBoom = (!isNight() && hasWhitewolfRole());
   if(isNight()){
     hintMainEl.textContent = isCompactHint ? "" : "黑夜记录";
     hintSubEl.textContent = isCompactHint
@@ -2181,9 +2218,13 @@ function renderTop(){
       : "点号码：标记身份；长按2秒：切换存亡（黑夜可用技能按钮标记目标）";
     actionsPanel.classList.remove("isHidden");
   }else{
+    hintSubEl.innerHTML = "";
     const isDay1 = (dayNumber() === 1);
 
-    if(isDay1 && state.day1SubStage===0){
+    if(isDay1 && state.whitewolfBoomSkipSheriff){
+      hintMainEl.textContent = isCompactHint ? "白天" : "白天记录";
+      hintSubEl.innerHTML = "<b>狼人自爆，警徽流失！请直接进入天黑。</b>";
+    }else if(isDay1 && state.day1SubStage===0){
       hintMainEl.textContent = isCompactHint ? "上警报名" : "第1天上警报名";
       hintSubEl.textContent = isCompactHint
         ? "点号码上警；长按切换存亡"
@@ -2219,7 +2260,7 @@ function renderTop(){
         : "点号码：标记身份；长按2秒：切换存亡；投票请点底部“投票选项”（保存后主界面显示→X角标）";
     }
 
-    actionsPanel.classList.add("isHidden");
+    actionsPanel.classList.toggle("isHidden", !showDayBoom);
   }
 
   btnTemplate.textContent = `模板设置：${state.playerCount}人`;
@@ -2232,6 +2273,7 @@ function renderActionsActive(){
   actSeer.classList.toggle("active", s==="seer");
   actGuard.classList.toggle("active", s==="guard");
   actDreamer.classList.toggle("active", s==="dreamer");
+  actBoom.classList.toggle("active", state.daySkill==="whitewolf");
 }
 
 /** =============================
@@ -2323,6 +2365,7 @@ function renderGrid(){
 
     const marksList = [];
     if(p.voteMarked) marksList.push(makeMark("投"));
+    if(p.boomed) marksList.push(makeMark("爆"));
     const hasNightPoison = isNight() && p.marks.witchPoison;
     if(p.poisoned && !hasNightPoison) marksList.push(makeMark("毒"));
     if(isNight()){
@@ -2464,6 +2507,12 @@ function onCellTap(id){
   if(Date.now() - lastLongPressAt < 400) return;
   const p = getPlayer(id);
 
+  // 白狼王自爆（白天）
+  if(!isNight() && state.daySkill === "whitewolf"){
+    handleWhitewolfBoomTap(id);
+    return;
+  }
+
   // Day1 上警报名
   if(!isNight() && dayNumber()===1 && state.day1SubStage===0){
     if(!p.alive) return;
@@ -2595,6 +2644,13 @@ function nextStage(){
       reviveDay1NightDead();
     }
     state.nightAutoDead = {};
+    if(state.whitewolfBoomDayUsed != null && dayNumber() > state.whitewolfBoomDayUsed){
+      state.whitewolfBoomDisabled = true;
+    }
+  }else{
+    state.daySkill = null;
+    state.dayTargets.whitewolfBoom = null;
+    state.dayBoomed = null;
   }
 
   // 进入黑夜：清夜标记 + 清空当日固定投票角标（只清当前天）
@@ -2668,8 +2724,115 @@ function renderAll(){
       actionsHint.textContent = `当前技能：${skillText}，请选择目标。`;
     }
   }else{
-    actionsHint.style.color = "";
+    if(hasSkill){
+      const skillText = state.daySkill ? "白狼王（自爆）" : "未选择技能";
+      actionsHint.style.color = state.daySkill ? getCss("--whitewolf") : "";
+      actionsHint.textContent = `当前技能：${skillText}，请选择目标。`;
+    }else{
+      actionsHint.style.color = "";
+    }
   }
+}
+
+function clearWhitewolfBoom(){
+  if(state.dayBoomed){
+    const info = state.dayBoomed;
+    const ww = getPlayer(info.wwId);
+    const target = getPlayer(info.targetId);
+    if(ww){
+      ww.boomed = info.wwWasBoomed;
+      if(info.wwWasAlive) ww.alive = true;
+    }
+    if(target){
+      target.boomed = info.targetWasBoomed;
+      if(info.targetWasAlive) target.alive = true;
+    }
+  }
+  state.dayBoomed = null;
+  state.dayTargets.whitewolfBoom = null;
+}
+function handleWhitewolfBoomTap(targetId){
+  const current = state.dayTargets.whitewolfBoom;
+
+  // 1. 如果点击的是当前已选目标 -> 执行撤销（回滚）
+  if(current === targetId){
+    clearWhitewolfBoom();
+    // 保持技能开启状态，方便重新选人
+    // state.daySkill = null; // 不要关闭技能
+    renderAll();
+    haptic();
+    return;
+  }
+
+  // 2. 核心逻辑：如果已经选了别人（current != targetId），先自动回滚旧目标
+  // 这样就能实现“点B直接换B，不需要先取消A”
+  if(current != null){
+    clearWhitewolfBoom();
+  }
+
+  // 3. 检查白狼王是否存活 (此时旧目标已回滚，白狼王应该是活着的)
+  if(!hasWhitewolfRole()){
+    toast("本局没有白狼王");
+    return;
+  }
+  const aliveWhitewolves = Object.values(state.players)
+    .filter(p=>p.roleKey === "whitewolf" && p.alive)
+    .map(p=>p.id)
+    .sort((a,b)=>a-b);
+
+  if(aliveWhitewolves.length === 0){
+    toast("白狼王已死亡");
+    return;
+  }
+  
+  // 默认让号数最小的白狼王发动技能（通常只有1个）
+  const wwId = aliveWhitewolves[0];
+
+  if(targetId === wwId){
+    toast("不能选择自己");
+    return;
+  }
+
+  const target = getPlayer(targetId);
+  if(!target) return;
+  if(!target.alive){
+    toast("只能选择存活玩家");
+    return;
+  }
+
+  // 4. 执行新的自爆
+  // 记录状态以便回滚
+  state.dayTargets.whitewolfBoom = targetId;
+  const ww = getPlayer(wwId);
+  state.dayBoomed = {
+    wwId,
+    targetId,
+    wwWasAlive: ww.alive,
+    targetWasAlive: target.alive,
+    wwWasBoomed: ww.boomed,
+    targetWasBoomed: target.boomed
+  };
+
+  // 双方死亡
+  ww.alive = false;
+  target.alive = false;
+  // 标记
+  ww.boomed = true;
+  target.boomed = true;
+  state.whitewolfBoomDayUsed = dayNumber();
+
+  if(dayNumber() === 1 && state.day1SubStage < 2){
+    for(const p of Object.values(state.players)) p.isCandidate = false;
+    state.sheriffVote = { currentCandidate:null, votesByVoter:{}, round:1, tiedCandidates:null };
+    state.day1SubStage = 2;
+    state.whitewolfBoomSkipSheriff = true;
+  }
+
+  // 技能按钮保持激活，不自动关闭，方便连续调整
+  // state.daySkill = null; 
+  
+  renderAll();
+  haptic();
 }
 
 /** =============================
@@ -2748,7 +2911,24 @@ actWitch.addEventListener("click", ()=>{
 actSeer.addEventListener("click", ()=>{ state.nightSkill = (state.nightSkill==="seer")?null:"seer"; renderAll(); haptic(); });
 actGuard.addEventListener("click", ()=>{ state.nightSkill = (state.nightSkill==="guard")?null:"guard"; renderAll(); haptic(); });
 actDreamer.addEventListener("click", ()=>{ state.nightSkill = (state.nightSkill==="dreamer")?null:"dreamer"; renderAll(); haptic(); });
-actClear.addEventListener("click", ()=>{ clearNightMarks(true); renderAll(); toast("已清空本夜标记"); haptic(); });
+actBoom.addEventListener("click", ()=>{
+  state.daySkill = (state.daySkill==="whitewolf") ? null : "whitewolf";
+  renderAll();
+  haptic();
+});
+actClear.addEventListener("click", ()=>{
+  if(isNight()){
+    clearNightMarks(true);
+    renderAll();
+    toast("已清空本夜标记");
+    haptic();
+  }else{
+    clearWhitewolfBoom();
+    renderAll();
+    toast("已清空本轮标记");
+    haptic();
+  }
+});
 
 // Vote modal buttons
 btnAssign.addEventListener("click", ()=>{
