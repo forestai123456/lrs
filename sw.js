@@ -29,7 +29,7 @@ self.addEventListener("fetch", (event) => {
         const copy = resp.clone();
         caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
         return resp;
-      })
+      }).catch(() => new Response("Offline"))
     )
   );
 });
