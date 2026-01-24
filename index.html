@@ -945,7 +945,8 @@
               <div class="voteInfo" id="voteInfo">
                 1) 先点「投票人」（可多选）<br/>
                 2) 点「投给」后，再点「被投票人」（单选）完成一组记录<br/>
-                3) 可继续多组；点「完成」保存到历史记录并退出
+                3) 可继续多组；点「完成」保存到历史记录并退出<br/>
+                4) 警长投票计 1.5 票
               </div>
             </div>
           </div>
@@ -1275,6 +1276,10 @@ function setBackground(){
     themeMeta.setAttribute("content", topColor);
   }
   document.documentElement.style.setProperty("--statusbar", topColor);
+  if(window.plus && plus.navigator){
+    plus.navigator.setStatusBarBackground(topColor);
+    plus.navigator.setStatusBarStyle(isNight() ? "light" : "dark");
+  }
 }
 function alivePlayerIds(){
   return Object.values(state.players).filter(p=>p.alive).map(p=>p.id);
@@ -2263,7 +2268,15 @@ function saveVoteSessionToHistory(){
   const grouped = groupVotes(voteSession.assigned);
   const lines = [];
   for(const {target, voters} of grouped){
-    if(voters.length) lines.push(`${voters.join(",")}投给${target}`);
+    if(voters.length){
+      let weight = 0;
+      for(const voterId of voters){
+        const voter = getPlayer(voterId);
+        weight += (voter && voter.isSheriff) ? 1.5 : 1;
+      }
+      const weightText = Number.isInteger(weight) ? String(weight) : weight.toFixed(1);
+      lines.push(`${voters.join(",")}投给${target}（计票：${weightText}）`);
+    }
   }
   if(lines.length === 0){
     toast("没有投票记录可保存");
@@ -2290,9 +2303,12 @@ function saveVoteSessionToHistory(){
 
 function applyDayVoteOutcome(votesByVoter){
   const tally = new Map();
-  for(const target of Object.values(votesByVoter)){
+  for(const [voterStr, target] of Object.entries(votesByVoter)){
     if(target == null) continue;
-    tally.set(target, (tally.get(target) || 0) + 1);
+    const voterId = Number(voterStr);
+    const voter = getPlayer(voterId);
+    const weight = voter && voter.isSheriff ? 1.5 : 1;
+    tally.set(target, (tally.get(target) || 0) + weight);
   }
   if(tally.size === 0) return;
 
@@ -2731,7 +2747,7 @@ function attachCellHandlers(cell, id){
       pressed = true;
       suppressTap = true;
       toggleAlive(id);
-    }, 500);
+    }, 700);
   };
   const endPress = (e)=>{
     if(e && e.cancelable) e.preventDefault();
@@ -3594,6 +3610,11 @@ btnFinishVote.addEventListener("click", ()=>{
 state = initState(12);
 buildRolePicker();
 renderAll();
+if(window.plus){
+  setBackground();
+}else{
+  document.addEventListener("plusready", ()=> setBackground());
+}
 </script>
 <script>
 if("serviceWorker" in navigator){
